@@ -61,6 +61,11 @@ public class JugadorService {
         if (profileData == null) {
             throw new IllegalArgumentException("Los datos de perfil son obligatorios");
         }
+        boolean nombreVacio = profileData.getNombre() == null || profileData.getNombre().isBlank();
+        boolean urlVacia = profileData.getPerfilURL() == null || profileData.getPerfilURL().isBlank();
+        if (nombreVacio && urlVacia) {
+            throw new IllegalArgumentException("Debes indicar al menos un campo para actualizar");
+        }
 
         JugadorEntity jugador = jugadorRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Jugador no encontrado: " + id));

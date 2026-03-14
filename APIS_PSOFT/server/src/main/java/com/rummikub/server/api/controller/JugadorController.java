@@ -5,6 +5,7 @@ import com.rummikub.server.api.dto.jugador.CreateJugadorRequest;
 import com.rummikub.server.api.dto.jugador.UpdateJugadorProfileRequest;
 import com.rummikub.server.application.services.JugadorService;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,7 +38,7 @@ public class JugadorController {
     }
 
     @PostMapping
-    public JugadorDTO create(@RequestBody CreateJugadorRequest request) {
+    public JugadorDTO create(@Valid @RequestBody CreateJugadorRequest request) {
         JugadorEntity jugador = new JugadorEntity();
         jugador.setId(request.getId());
         jugador.setNombre(request.getNombre());
@@ -47,7 +48,7 @@ public class JugadorController {
     }
 
     @PatchMapping("/{id}/perfil")
-    public JugadorDTO updateProfile(@PathVariable String id, @RequestBody UpdateJugadorProfileRequest request) {
+    public JugadorDTO updateProfile(@PathVariable String id, @Valid @RequestBody UpdateJugadorProfileRequest request) {
         JugadorEntity jugador = new JugadorEntity();
         jugador.setNombre(request.getNombre());
         jugador.setPerfilURL(request.getPerfilURL());

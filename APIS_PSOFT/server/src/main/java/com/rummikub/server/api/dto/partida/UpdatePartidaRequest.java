@@ -1,9 +1,18 @@
 ﻿package com.rummikub.server.api.dto.partida;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
+
 public class UpdatePartidaRequest {
+    @Min(value = 0, message = "El turno no puede ser negativo")
     private int turno;
+
+    @Size(max = 5000, message = "La bolsa supera el tamano permitido")
     private String bolsa;
+
+    @Size(max = 5000, message = "El mercado supera el tamano permitido")
     private String mercado;
+
     private String fichasJugador1;
     private String fichasJugador2;
     private String fichasJugador3;
