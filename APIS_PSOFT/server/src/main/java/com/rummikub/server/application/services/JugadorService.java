@@ -30,24 +30,46 @@ public class JugadorService {
         return Mapper.toDTO(jugador);
     }
 
-    public JugadorDTO create(String id, String nombre, String contrasena) {
-        if (jugadorRepository.existsById(id)) {
-            throw new IllegalStateException("Ya existe un jugador con id: " + id);
+    public JugadorDTO create(JugadorEntity jugador) {
+        if (jugador == null || jugador.getId() == null || jugador.getId().isBlank()) {
+            throw new IllegalArgumentException("El id del jugador es obligatorio");
+        }
+        if (jugador.getNombre() == null || jugador.getNombre().isBlank()) {
+            throw new IllegalArgumentException("El nombre del jugador es obligatorio");
+        }
+        if (jugador.getContrasena() == null || jugador.getContrasena().isBlank()) {
+            throw new IllegalArgumentException("La contrasena del jugador es obligatoria");
+        }
+        if (jugadorRepository.existsById(jugador.getId())) {
+            throw new IllegalStateException("Ya existe un jugador con id: " + jugador.getId());
         }
 
-        JugadorEntity jugador = new JugadorEntity(id, nombre, contrasena);
+        jugador.setMonedaCosmeticos(0);
+        if (jugador.getPerfilURL() == null) {
+            jugador.setPerfilURL("");
+        }
+        jugador.setPartidasGanadas(0);
+        jugador.setPartidasTotales(0);
+        if (jugador.getCosmeticos() == null) {
+            jugador.setCosmeticos("");
+        }
+
         return Mapper.toDTO(jugadorRepository.save(jugador));
     }
 
-    public JugadorDTO updateProfile(String id, String nombre, String perfilUrl) {
+    public JugadorDTO updateProfile(String id, JugadorEntity profileData) {
+        if (profileData == null) {
+            throw new IllegalArgumentException("Los datos de perfil son obligatorios");
+        }
+
         JugadorEntity jugador = jugadorRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Jugador no encontrado: " + id));
 
-        if (nombre != null && !nombre.isBlank()) {
-            jugador.setNombre(nombre);
+        if (profileData.getNombre() != null && !profileData.getNombre().isBlank()) {
+            jugador.setNombre(profileData.getNombre());
         }
-        if (perfilUrl != null) {
-            jugador.setPerfilURL(perfilUrl);
+        if (profileData.getPerfilURL() != null) {
+            jugador.setPerfilURL(profileData.getPerfilURL());
         }
 
         return Mapper.toDTO(jugadorRepository.save(jugador));
