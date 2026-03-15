@@ -1,0 +1,337 @@
+{
+  "info": {
+    "name": "RummiPlus API Demo",
+    "_postman_id": "2f97f877-b481-45b3-8c7f-7051b8003e56",
+    "description": "Coleccion de prueba para demostrar el patron controller -> service -> repository/mapper -> dto en Jugador, Partida y ListaDeAmigos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "jugador1Id",
+      "value": "jugador-demo-1"
+    },
+    {
+      "key": "jugador2Id",
+      "value": "jugador-demo-2"
+    },
+    {
+      "key": "partidaId",
+      "value": "partida-demo-1"
+    },
+    {
+      "key": "amistadId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Jugadores",
+      "item": [
+        {
+          "name": "Crear Jugador 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{jugador1Id}}\",\n  \"nombre\": \"Alex\",\n  \"contrasena\": \"secreto123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jugadores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "jugadores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear Jugador 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{jugador2Id}}\",\n  \"nombre\": \"Fabrizio\",\n  \"contrasena\": \"secreto123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jugadores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "jugadores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Jugadores",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/jugadores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "jugadores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Perfil Jugador 1",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Alex Dev\",\n  \"perfilURL\": \"https://example.com/avatar/alex.png\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jugadores/{{jugador1Id}}/perfil",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "jugadores",
+                "{{jugador1Id}}",
+                "perfil"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener Jugador 1",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/jugadores/{{jugador1Id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "jugadores",
+                "{{jugador1Id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Amigos",
+      "item": [
+        {
+          "name": "Crear Relacion de Amistad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jugador1Id\": \"{{jugador1Id}}\",\n  \"jugador2Id\": \"{{jugador2Id}}\",\n  \"estado\": \"PENDIENTE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/amigos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "amigos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Amigos de Jugador 1",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/amigos?jugadorId={{jugador1Id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "amigos"
+              ],
+              "query": [
+                {
+                  "key": "jugadorId",
+                  "value": "{{jugador1Id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Estado de Amistad (usa id devuelto)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"ACEPTADA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/amigos/{{amistadId}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "amigos",
+                "{{amistadId}}",
+                "estado"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Partidas",
+      "item": [
+        {
+          "name": "Crear Partida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{partidaId}}\",\n  \"turno\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Partida",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turno\": 1,\n  \"bolsa\": \"f1,f2,f3\",\n  \"mercado\": \"obj1,obj2\",\n  \"fichasJugador1\": \"1R,2R,3R\",\n  \"fichasJugador2\": \"4A,5A\",\n  \"fichasJugador3\": \"\",\n  \"fichasJugador4\": \"\",\n  \"habilidadesJugador1\": \"ROBAR_4\",\n  \"habilidadesJugador2\": \"\",\n  \"habilidadesJugador3\": \"\",\n  \"habilidadesJugador4\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener Partida",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Errores de Validacion (demo)",
+      "item": [
+        {
+          "name": "Crear Jugador invalido (sin contrasena)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"jugador-invalido\",\n  \"nombre\": \"SinPass\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jugadores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "jugadores"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
