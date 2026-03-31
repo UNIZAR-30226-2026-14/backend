@@ -1,0 +1,15 @@
+$kind: http-request
+name: Crear Partida
+method: POST
+url: '{{baseUrl}}/api/partidas'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{partidaId}}",
+      "turno": 0
+    }

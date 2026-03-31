@@ -1,0 +1,16 @@
+$kind: http-request
+name: Crear Relacion de Amistad
+method: POST
+url: '{{baseUrl}}/api/amigos'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "jugador1Id": "{{jugador1Id}}",
+      "jugador2Id": "{{jugador2Id}}",
+      "estado": "PENDIENTE"
+    }

@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Actualizar Estado de Amistad (usa id devuelto)'
+method: PATCH
+url: '{{baseUrl}}/api/amigos/{{amistadId}}/estado'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "estado": "ACEPTADA"
+    }

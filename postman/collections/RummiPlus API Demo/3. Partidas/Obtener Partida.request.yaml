@@ -1,0 +1,5 @@
+$kind: http-request
+name: Obtener Partida
+method: GET
+url: '{{baseUrl}}/api/partidas/{{partidaId}}'
+order: 3000

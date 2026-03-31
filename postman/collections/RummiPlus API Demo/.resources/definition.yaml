@@ -1,0 +1,14 @@
+$kind: collection
+name: RummiPlus API Demo
+description: Coleccion de prueba para demostrar el patron controller -> service -> repository/mapper -> dto en Jugador, Partida y ListaDeAmigos.
+variables:
+  - key: baseUrl
+    value: 'http://localhost:8080'
+  - key: jugador1Id
+    value: 'jugador-demo-1'
+  - key: jugador2Id
+    value: 'jugador-demo-2'
+  - key: partidaId
+    value: 'partida-demo-1'
+  - key: amistadId
+    value: ''

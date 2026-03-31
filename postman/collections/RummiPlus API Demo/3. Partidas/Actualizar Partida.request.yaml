@@ -1,0 +1,24 @@
+$kind: http-request
+name: Actualizar Partida
+method: PUT
+url: '{{baseUrl}}/api/partidas/{{partidaId}}'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "turno": 1,
+      "bolsa": "f1,f2,f3",
+      "mercado": "obj1,obj2",
+      "fichasJugador1": "1R,2R,3R",
+      "fichasJugador2": "4A,5A",
+      "fichasJugador3": "",
+      "fichasJugador4": "",
+      "habilidadesJugador1": "ROBAR_4",
+      "habilidadesJugador2": "",
+      "habilidadesJugador3": "",
+      "habilidadesJugador4": ""
+    }

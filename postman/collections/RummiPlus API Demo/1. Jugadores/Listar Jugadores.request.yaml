@@ -1,0 +1,5 @@
+$kind: http-request
+name: Listar Jugadores
+method: GET
+url: '{{baseUrl}}/api/jugadores'
+order: 3000

@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Crear Jugador invalido (sin contrasena)'
+method: POST
+url: '{{baseUrl}}/api/jugadores'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "jugador-invalido",
+      "nombre": "SinPass"
+    }

@@ -1,0 +1,7 @@
+# Use this workspace to collaborate
+workspace:
+  id: ce47c3c2-7c08-44be-8666-cd281557add1
+
+localResources:
+  collections:
+    - ..\APIS_PSOFT\server\docs\postman\RummiPlus-API-Demo.postman_collection.json
