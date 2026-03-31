@@ -28,16 +28,16 @@ public class ListaDeAmigosController {
     }
 
     @GetMapping
-    public List<ListaDeAmigosDTO> getAll(@RequestParam(required = false) String jugadorId) {
-        if (jugadorId != null && !jugadorId.isBlank()) {
+    public List<ListaDeAmigosDTO> getAll(@RequestParam(required = false) Integer jugadorId) {
+        if (jugadorId != null) {
             return listaDeAmigosService.getByJugadorId(jugadorId);
         }
         return listaDeAmigosService.getAll();
     }
 
-    @GetMapping("/{id}")
-    public ListaDeAmigosDTO getById(@PathVariable String id) {
-        return listaDeAmigosService.getById(id);
+    @GetMapping("/{jugadorId}/{amigoId}")
+    public ListaDeAmigosDTO getById(@PathVariable Integer jugadorId, @PathVariable Integer amigoId) {
+        return listaDeAmigosService.getById(jugadorId, amigoId);
     }
 
     @PostMapping
@@ -50,13 +50,13 @@ public class ListaDeAmigosController {
         );
     }
 
-    @PatchMapping("/{id}/estado")
-    public ListaDeAmigosDTO updateEstado(@PathVariable String id, @Valid @RequestBody UpdateEstadoAmistadRequest request) {
-        return listaDeAmigosService.updateEstado(id, request.getEstado());
+    @PatchMapping("/{jugadorId}/{amigoId}/estado")
+    public ListaDeAmigosDTO updateEstado(@PathVariable Integer jugadorId, @PathVariable Integer amigoId, @Valid @RequestBody UpdateEstadoAmistadRequest request) {
+        return listaDeAmigosService.updateEstado(jugadorId, amigoId, request.getEstado());
     }
 
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable String id) {
-        listaDeAmigosService.delete(id);
+    @DeleteMapping("/{jugadorId}/{amigoId}")
+    public void delete(@PathVariable Integer jugadorId, @PathVariable Integer amigoId) {
+        listaDeAmigosService.delete(jugadorId, amigoId);
     }
 }

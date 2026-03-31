@@ -10,15 +10,16 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder//para el mapper, así lo crea solo
+@Builder
 public class JugadorDTO {
-    //se usara para entradas y salidas de la api, en este caso quitamos la
-    //info sensible, contraseña
-    private String id;
+    private Integer id;
     private String nombre;
-    private int monedaCosmeticos;
-    private String perfilURL;
+    private int monedas;
+    private String urlImgPerfil;
     private int partidasGanadas;
-    private int partidasTotales;
+    private int partidasPerdidas;
+    private int partidasEmpatadas;
+    private int partidasPendientes;
+    private int partidasFinalizadas;
     private String cosmeticos;
 }

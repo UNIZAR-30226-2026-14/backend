@@ -3,6 +3,7 @@ package com.rummikub.server.application.services;
 import com.rummikub.server.api.dto.ListaDeAmigosDTO;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ListaDeAmigosEntity;
+import com.rummikub.server.infraestructure.jpa.entity.ListaDeAmigosId;
 import com.rummikub.server.infraestructure.jpa.mapper.Mapper;
 import com.rummikub.server.infraestructure.jpa.repository.JugadorRepository;
 import com.rummikub.server.infraestructure.jpa.repository.ListaDeAmigosRepository;
@@ -29,20 +30,21 @@ public class ListaDeAmigosService {
                 .toList();
     }
 
-    public ListaDeAmigosDTO getById(String id) {
+    public ListaDeAmigosDTO getById(Integer jugadorId, Integer amigoId) {
+        ListaDeAmigosId id = new ListaDeAmigosId(jugadorId, amigoId);
         ListaDeAmigosEntity relacion = listaDeAmigosRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Relacion de amistad no encontrada: " + id));
+                .orElseThrow(() -> new NoSuchElementException("Relacion de amistad no encontrada"));
         return Mapper.toDTO(relacion);
     }
 
-    public List<ListaDeAmigosDTO> getByJugadorId(String jugadorId) {
+    public List<ListaDeAmigosDTO> getByJugadorId(Integer jugadorId) {
         return listaDeAmigosRepository.findByJugador1_IdOrJugador2_Id(jugadorId, jugadorId).stream()
                 .map(Mapper::toDTO)
                 .toList();
     }
 
-    public ListaDeAmigosDTO create(String jugador1Id, String jugador2Id, String estado, String fecha) {
-        if (jugador1Id == null || jugador2Id == null || jugador1Id.isBlank() || jugador2Id.isBlank()) {
+    public ListaDeAmigosDTO create(Integer jugador1Id, Integer jugador2Id, String estado, String fecha) {
+        if (jugador1Id == null || jugador2Id == null) {
             throw new IllegalArgumentException("Los ids de jugador son obligatorios");
         }
         if (jugador1Id.equals(jugador2Id)) {
@@ -54,13 +56,9 @@ public class ListaDeAmigosService {
         JugadorEntity jugador2 = jugadorRepository.findById(jugador2Id)
                 .orElseThrow(() -> new NoSuchElementException("Jugador no encontrado: " + jugador2Id));
 
-        boolean alreadyExists = listaDeAmigosRepository.findByJugador1_IdOrJugador2_Id(jugador1Id, jugador1Id).stream()
-                .anyMatch(rel ->
-                        (rel.getJugador1().getId().equals(jugador1Id) && rel.getJugador2().getId().equals(jugador2Id))
-                                || (rel.getJugador1().getId().equals(jugador2Id) && rel.getJugador2().getId().equals(jugador1Id))
-                );
-
-        if (alreadyExists) {
+        ListaDeAmigosId directa = new ListaDeAmigosId(jugador1Id, jugador2Id);
+        ListaDeAmigosId inversa = new ListaDeAmigosId(jugador2Id, jugador1Id);
+        if (listaDeAmigosRepository.existsById(directa) || listaDeAmigosRepository.existsById(inversa)) {
             throw new IllegalStateException("La relacion de amistad ya existe");
         }
 
@@ -71,21 +69,23 @@ public class ListaDeAmigosService {
         return Mapper.toDTO(listaDeAmigosRepository.save(nuevaRelacion));
     }
 
-    public ListaDeAmigosDTO updateEstado(String id, String estado) {
+    public ListaDeAmigosDTO updateEstado(Integer jugadorId, Integer amigoId, String estado) {
         if (estado == null || estado.isBlank()) {
             throw new IllegalArgumentException("El estado es obligatorio");
         }
 
+        ListaDeAmigosId id = new ListaDeAmigosId(jugadorId, amigoId);
         ListaDeAmigosEntity relacion = listaDeAmigosRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Relacion de amistad no encontrada: " + id));
+                .orElseThrow(() -> new NoSuchElementException("Relacion de amistad no encontrada"));
 
         relacion.setEstado(estado);
         return Mapper.toDTO(listaDeAmigosRepository.save(relacion));
     }
 
-    public void delete(String id) {
+    public void delete(Integer jugadorId, Integer amigoId) {
+        ListaDeAmigosId id = new ListaDeAmigosId(jugadorId, amigoId);
         if (!listaDeAmigosRepository.existsById(id)) {
-            throw new NoSuchElementException("Relacion de amistad no encontrada: " + id);
+            throw new NoSuchElementException("Relacion de amistad no encontrada");
         }
         listaDeAmigosRepository.deleteById(id);
     }

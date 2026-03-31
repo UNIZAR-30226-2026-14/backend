@@ -2,69 +2,68 @@ package com.rummikub.server.infraestructure.jpa.mapper;
 
 import com.rummikub.server.api.dto.JugadorDTO;
 import com.rummikub.server.api.dto.ListaDeAmigosDTO;
+import com.rummikub.server.api.dto.ParticipacionDTO;
 import com.rummikub.server.api.dto.PartidaDTO;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ListaDeAmigosEntity;
+import com.rummikub.server.infraestructure.jpa.entity.ParticipacionEntity;
 import com.rummikub.server.infraestructure.jpa.entity.PartidaEntity;
 
-//CLASE ENCARGADA DE TRASPASO DE ENTITY A DTO
-//Se usa para gestion interna de la informacion
-//y adaptacion a los formatos de salida
-
 public class Mapper {
-    
-    //Partida
-    public static PartidaDTO toDTO(PartidaEntity part){
-        if(part != null){
-            return PartidaDTO.builder()
-                .id(part.getId())
+
+    public static PartidaDTO toDTO(PartidaEntity part) {
+        if (part == null) {
+            return null;
+        }
+        return PartidaDTO.builder()
+                .idPartida(part.getIdPartida())
                 .turno(part.getTurno())
+                .fecha(part.getFecha())
                 .bolsa(part.getBolsa())
                 .mercado(part.getMercado())
-                .fichasJugador1(part.getFichasJugador1())
-                .fichasJugador2(part.getFichasJugador2())
-                .fichasJugador3(part.getFichasJugador3())
-                .fichasJugador4(part.getFichasJugador4())
-                .habilidadesJugador1(part.getHabilidadesJugador1())
-                .habilidadesJugador2(part.getHabilidadesJugador2())
-                .habilidadesJugador3(part.getHabilidadesJugador3())
-                .habilidadesJugador4(part.getHabilidadesJugador4())
+                .corriendo(part.isCorriendo())
                 .build();
-
-        }else{return null;}
     }
 
-
-    //Jugador
-    public static JugadorDTO toDTO(JugadorEntity jug){
-        if(jug != null){
-            return JugadorDTO.builder() 
+    public static JugadorDTO toDTO(JugadorEntity jug) {
+        if (jug == null) {
+            return null;
+        }
+        return JugadorDTO.builder()
                 .id(jug.getId())
                 .nombre(jug.getNombre())
-                .monedaCosmeticos(jug.getMonedaCosmeticos())
-                .perfilURL(jug.getPerfilURL())
+                .monedas(jug.getMonedas())
+                .urlImgPerfil(jug.getUrlImgPerfil())
                 .partidasGanadas(jug.getPartidasGanadas())
-                .partidasTotales(jug.getPartidasTotales())
+                .partidasPerdidas(jug.getPartidasPerdidas())
+                .partidasEmpatadas(jug.getPartidasEmpatadas())
+                .partidasPendientes(jug.getPartidasPendientes())
+                .partidasFinalizadas(jug.getPartidasFinalizadas())
                 .cosmeticos(jug.getCosmeticos())
                 .build();
-
-        }else{return null;}
     }
 
-
-    //Lista de amigos
-    public static ListaDeAmigosDTO toDTO(ListaDeAmigosEntity lis){
-        if(lis != null){
-            return ListaDeAmigosDTO.builder()   
-                .id(lis.getId())
+    public static ListaDeAmigosDTO toDTO(ListaDeAmigosEntity lis) {
+        if (lis == null) {
+            return null;
+        }
+        return ListaDeAmigosDTO.builder()
                 .jugador1(lis.getJugador1().getId())
                 .jugador2(lis.getJugador2().getId())
                 .fecha(lis.getFecha())
                 .estado(lis.getEstado())
                 .build();
-
-        }else{return null;}
     }
 
-
+    public static ParticipacionDTO toDTO(ParticipacionEntity participacion) {
+        if (participacion == null) {
+            return null;
+        }
+        return ParticipacionDTO.builder()
+                .idJugador(participacion.getJugador().getId())
+                .idPartida(participacion.getPartida().getIdPartida())
+                .fichasActuales(participacion.getFichasActuales())
+                .habilidadesActuales(participacion.getHabilidadesActuales())
+                .build();
+    }
 }

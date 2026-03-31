@@ -11,6 +11,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 //la biblioteca toma en cuenta los parametros de la clase entity para crear las operaciones
 //de comunicacion con la BBDD
 
-public interface JugadorRepository extends JpaRepository<JugadorEntity,String>{
+public interface JugadorRepository extends JpaRepository<JugadorEntity, Integer>{
     
 }

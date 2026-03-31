@@ -33,7 +33,7 @@ public class JugadorController {
     }
 
     @GetMapping("/{id}")
-    public JugadorDTO getById(@PathVariable String id) {
+    public JugadorDTO getById(@PathVariable Integer id) {
         return jugadorService.getById(id);
     }
 
@@ -48,16 +48,16 @@ public class JugadorController {
     }
 
     @PatchMapping("/{id}/perfil")
-    public JugadorDTO updateProfile(@PathVariable String id, @Valid @RequestBody UpdateJugadorProfileRequest request) {
+    public JugadorDTO updateProfile(@PathVariable Integer id, @Valid @RequestBody UpdateJugadorProfileRequest request) {
         JugadorEntity jugador = new JugadorEntity();
         jugador.setNombre(request.getNombre());
-        jugador.setPerfilURL(request.getPerfilURL());
+        jugador.setUrlImgPerfil(request.getUrlImgPerfil());
 
         return jugadorService.updateProfile(id, jugador);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable String id) {
+    public void delete(@PathVariable Integer id) {
         jugadorService.delete(id);
     }
 }

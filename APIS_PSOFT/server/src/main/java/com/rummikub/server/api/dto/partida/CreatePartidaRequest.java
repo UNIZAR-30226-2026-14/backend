@@ -1,23 +1,30 @@
-﻿package com.rummikub.server.api.dto.partida;
+package com.rummikub.server.api.dto.partida;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotNull;
+
+import java.time.LocalDate;
 
 public class CreatePartidaRequest {
-    @NotBlank(message = "El id de partida es obligatorio")
-    @Size(max = 64, message = "El id de partida no puede superar 64 caracteres")
-    private String id;
+    @NotNull(message = "El id de partida es obligatorio")
+    private Integer idPartida;
 
     @Min(value = 0, message = "El turno no puede ser negativo")
     private int turno;
 
-    public String getId() {
-        return id;
+    @NotNull(message = "La fecha es obligatoria")
+    private LocalDate fecha;
+
+    private String mercado;
+    private String bolsa;
+    private boolean corriendo;
+
+    public Integer getIdPartida() {
+        return idPartida;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setIdPartida(Integer idPartida) {
+        this.idPartida = idPartida;
     }
 
     public int getTurno() {
@@ -26,5 +33,37 @@ public class CreatePartidaRequest {
 
     public void setTurno(int turno) {
         this.turno = turno;
+    }
+
+    public LocalDate getFecha() {
+        return fecha;
+    }
+
+    public void setFecha(LocalDate fecha) {
+        this.fecha = fecha;
+    }
+
+    public String getMercado() {
+        return mercado;
+    }
+
+    public void setMercado(String mercado) {
+        this.mercado = mercado;
+    }
+
+    public String getBolsa() {
+        return bolsa;
+    }
+
+    public void setBolsa(String bolsa) {
+        this.bolsa = bolsa;
+    }
+
+    public boolean isCorriendo() {
+        return corriendo;
+    }
+
+    public void setCorriendo(boolean corriendo) {
+        this.corriendo = corriendo;
     }
 }

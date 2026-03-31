@@ -7,7 +7,7 @@ public class UpdateJugadorProfileRequest {
     private String nombre;
 
     @Size(max = 500, message = "La URL de perfil no puede superar 500 caracteres")
-    private String perfilURL;
+    private String urlImgPerfil;
 
     public String getNombre() {
         return nombre;
@@ -17,11 +17,11 @@ public class UpdateJugadorProfileRequest {
         this.nombre = nombre;
     }
 
-    public String getPerfilURL() {
-        return perfilURL;
+    public String getUrlImgPerfil() {
+        return urlImgPerfil;
     }
 
-    public void setPerfilURL(String perfilURL) {
-        this.perfilURL = perfilURL;
+    public void setUrlImgPerfil(String urlImgPerfil) {
+        this.urlImgPerfil = urlImgPerfil;
     }
 }

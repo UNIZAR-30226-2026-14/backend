@@ -32,37 +32,38 @@ public class PartidaController {
     }
 
     @GetMapping("/{id}")
-    public PartidaDTO getById(@PathVariable String id) {
+    public PartidaDTO getById(@PathVariable Integer id) {
         return partidaService.getById(id);
     }
 
     @PostMapping
     public PartidaDTO create(@Valid @RequestBody CreatePartidaRequest request) {
-        return partidaService.create(request.getId(), request.getTurno());
+        PartidaDTO dto = PartidaDTO.builder()
+                .idPartida(request.getIdPartida())
+                .turno(request.getTurno())
+                .fecha(request.getFecha())
+                .bolsa(request.getBolsa())
+                .mercado(request.getMercado())
+                .corriendo(request.isCorriendo())
+                .build();
+        return partidaService.create(dto);
     }
 
     @PutMapping("/{id}")
-    public PartidaDTO update(@PathVariable String id, @Valid @RequestBody UpdatePartidaRequest request) {
+    public PartidaDTO update(@PathVariable Integer id, @Valid @RequestBody UpdatePartidaRequest request) {
         PartidaDTO dto = PartidaDTO.builder()
-                .id(id)
                 .turno(request.getTurno())
+                .fecha(request.getFecha())
                 .bolsa(request.getBolsa())
                 .mercado(request.getMercado())
-                .fichasJugador1(request.getFichasJugador1())
-                .fichasJugador2(request.getFichasJugador2())
-                .fichasJugador3(request.getFichasJugador3())
-                .fichasJugador4(request.getFichasJugador4())
-                .habilidadesJugador1(request.getHabilidadesJugador1())
-                .habilidadesJugador2(request.getHabilidadesJugador2())
-                .habilidadesJugador3(request.getHabilidadesJugador3())
-                .habilidadesJugador4(request.getHabilidadesJugador4())
+                .corriendo(request.isCorriendo())
                 .build();
 
-        return partidaService.update(dto);
+        return partidaService.update(id, dto);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable String id) {
+    public void delete(@PathVariable Integer id) {
         partidaService.delete(id);
     }
 }

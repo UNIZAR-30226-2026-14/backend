@@ -1,7 +1,7 @@
 ﻿$kind: http-request
-name: Crear Partida
+name: Crear Participacion Jugador 1
 method: POST
-url: '{{baseUrl}}/api/partidas'
+url: '{{baseUrl}}/api/participaciones'
 order: 1000
 headers:
   - key: Content-Type
@@ -10,10 +10,8 @@ body:
   type: json
   content: |-
     {
+      "idJugador": {{jugador1Id}},
       "idPartida": {{partidaId}},
-      "turno": 0,
-      "fecha": "2026-03-31",
-      "mercado": "obj1,obj2",
-      "bolsa": "f1,f2,f3",
-      "corriendo": false
+      "fichasActuales": 14,
+      "habilidadesActuales": "ROBAR_4"
     }

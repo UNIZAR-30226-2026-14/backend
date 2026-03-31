@@ -1,6 +1,7 @@
 package com.rummikub.server.infraestructure.jpa.repository;
 
 import com.rummikub.server.infraestructure.jpa.entity.ListaDeAmigosEntity;
+import com.rummikub.server.infraestructure.jpa.entity.ListaDeAmigosId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.List;
 //la biblioteca toma en cuenta los parametros de la clase entity para crear las operaciones
 //de comunicacion con la BBDD
 
-public interface ListaDeAmigosRepository extends JpaRepository<ListaDeAmigosEntity,String>{
+public interface ListaDeAmigosRepository extends JpaRepository<ListaDeAmigosEntity, ListaDeAmigosId> {
 
-    List<ListaDeAmigosEntity> findByJugador1_IdOrJugador2_Id(String jugador1Id, String jugador2Id);
+    List<ListaDeAmigosEntity> findByJugador1_IdOrJugador2_Id(Integer jugador1Id, Integer jugador2Id);
 }

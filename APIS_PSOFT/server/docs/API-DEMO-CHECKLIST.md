@@ -7,19 +7,16 @@
 
 ## 2) Orden recomendado de ejecucion
 1. Carpeta `1. Jugadores`
-2. Carpeta `2. Amigos`
-3. Carpeta `3. Partidas`
-4. Carpeta `4. Errores de Validacion (demo)`
-
-## 3) Nota importante para amigos
-- En `Crear Relacion de Amistad`, copia el `id` devuelto.
-- Pega ese valor en la variable `amistadId` de Postman.
-- Ejecuta `Actualizar Estado de Amistad (usa id devuelto)`.
+2. Carpeta `2. Partidas`
+3. Carpeta `3. Participaciones`
+4. Carpeta `4. Amigos`
+5. Carpeta `5. Errores de Validacion (demo)`
 
 ## 4) Que demuestra cada bloque
 - `Jugadores`: endpoint HTTP en controller, datos de entrada a service, persistencia y salida DTO.
-- `Amigos`: validacion de reglas de dominio (duplicados, no autoamistad), consulta filtrada por jugador.
 - `Partidas`: flujo de creacion y actualizacion de estado de partida.
+- `Participaciones`: relacion muchos-a-muchos `Jugador-Partida` con PK compuesta y estado por jugador.
+- `Amigos`: validacion de reglas de dominio (duplicados, no autoamistad), consulta filtrada por jugador con PK compuesta.
 - `Errores`: validaciones `@Valid` + `GlobalExceptionHandler` con respuesta estructurada.
 
 ## 5) Checklist de exposicion (profesores)

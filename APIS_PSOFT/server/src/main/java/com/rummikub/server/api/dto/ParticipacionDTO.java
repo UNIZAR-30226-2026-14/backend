@@ -11,9 +11,9 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ListaDeAmigosDTO {
-    private Integer jugador1;
-    private Integer jugador2;
-    private String fecha;
-    private String estado;
+public class ParticipacionDTO {
+    private Integer idJugador;
+    private Integer idPartida;
+    private int fichasActuales;
+    private String habilidadesActuales;
 }

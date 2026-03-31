@@ -1,4 +1,4 @@
-$kind: http-request
+﻿$kind: http-request
 name: Actualizar Partida
 method: PUT
 url: '{{baseUrl}}/api/partidas/{{partidaId}}'
@@ -11,14 +11,8 @@ body:
   content: |-
     {
       "turno": 1,
-      "bolsa": "f1,f2,f3",
-      "mercado": "obj1,obj2",
-      "fichasJugador1": "1R,2R,3R",
-      "fichasJugador2": "4A,5A",
-      "fichasJugador3": "",
-      "fichasJugador4": "",
-      "habilidadesJugador1": "ROBAR_4",
-      "habilidadesJugador2": "",
-      "habilidadesJugador3": "",
-      "habilidadesJugador4": ""
+      "fecha": "2026-03-31",
+      "mercado": "obj3,obj4",
+      "bolsa": "f4,f5,f6",
+      "corriendo": true
     }

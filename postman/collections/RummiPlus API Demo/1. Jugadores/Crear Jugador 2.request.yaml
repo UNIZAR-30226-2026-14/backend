@@ -1,4 +1,4 @@
-$kind: http-request
+﻿$kind: http-request
 name: Crear Jugador 2
 method: POST
 url: '{{baseUrl}}/api/jugadores'
@@ -10,7 +10,7 @@ body:
   type: json
   content: |-
     {
-      "id": "{{jugador2Id}}",
+      "id": {{jugador2Id}},
       "nombre": "Fabrizio",
       "contrasena": "secreto123"
     }

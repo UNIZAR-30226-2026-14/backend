@@ -6,6 +6,7 @@ import com.rummikub.server.infraestructure.jpa.mapper.Mapper;
 import com.rummikub.server.infraestructure.jpa.repository.PartidaRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -24,49 +25,49 @@ public class PartidaService {
                 .toList();
     }
 
-    public PartidaDTO getById(String id) {
-        PartidaEntity partida = partidaRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + id));
+    public PartidaDTO getById(Integer idPartida) {
+        PartidaEntity partida = partidaRepository.findById(idPartida)
+                .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
         return Mapper.toDTO(partida);
     }
 
-    public PartidaDTO create(String id, int turno) {
-        if (partidaRepository.existsById(id)) {
-            throw new IllegalStateException("Ya existe una partida con id: " + id);
-        }
-
-        PartidaEntity partida = new PartidaEntity(id, turno);
-        return Mapper.toDTO(partidaRepository.save(partida));
-    }
-
-    public PartidaDTO update(PartidaDTO dto) {
-        if (dto == null || dto.getId() == null || dto.getId().isBlank()) {
+    public PartidaDTO create(PartidaDTO dto) {
+        if (dto == null || dto.getIdPartida() == null) {
             throw new IllegalArgumentException("El id de la partida es obligatorio");
         }
+        if (partidaRepository.existsById(dto.getIdPartida())) {
+            throw new IllegalStateException("Ya existe una partida con id: " + dto.getIdPartida());
+        }
 
-        PartidaEntity partida = partidaRepository.findById(dto.getId())
-                .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + dto.getId()));
-
+        PartidaEntity partida = new PartidaEntity();
+        partida.setIdPartida(dto.getIdPartida());
         partida.setTurno(dto.getTurno());
+        partida.setFecha(dto.getFecha() == null ? LocalDate.now() : dto.getFecha());
         partida.setBolsa(safe(dto.getBolsa()));
         partida.setMercado(safe(dto.getMercado()));
-        partida.setFichasJugador1(safe(dto.getFichasJugador1()));
-        partida.setFichasJugador2(safe(dto.getFichasJugador2()));
-        partida.setFichasJugador3(safe(dto.getFichasJugador3()));
-        partida.setFichasJugador4(safe(dto.getFichasJugador4()));
-        partida.setHabilidadesJugador1(safe(dto.getHabilidadesJugador1()));
-        partida.setHabilidadesJugador2(safe(dto.getHabilidadesJugador2()));
-        partida.setHabilidadesJugador3(safe(dto.getHabilidadesJugador3()));
-        partida.setHabilidadesJugador4(safe(dto.getHabilidadesJugador4()));
+        partida.setCorriendo(dto.isCorriendo());
 
         return Mapper.toDTO(partidaRepository.save(partida));
     }
 
-    public void delete(String id) {
-        if (!partidaRepository.existsById(id)) {
-            throw new NoSuchElementException("Partida no encontrada: " + id);
+    public PartidaDTO update(Integer idPartida, PartidaDTO dto) {
+        PartidaEntity partida = partidaRepository.findById(idPartida)
+                .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
+
+        partida.setTurno(dto.getTurno());
+        partida.setFecha(dto.getFecha() == null ? partida.getFecha() : dto.getFecha());
+        partida.setBolsa(safe(dto.getBolsa()));
+        partida.setMercado(safe(dto.getMercado()));
+        partida.setCorriendo(dto.isCorriendo());
+
+        return Mapper.toDTO(partidaRepository.save(partida));
+    }
+
+    public void delete(Integer idPartida) {
+        if (!partidaRepository.existsById(idPartida)) {
+            throw new NoSuchElementException("Partida no encontrada: " + idPartida);
         }
-        partidaRepository.deleteById(id);
+        partidaRepository.deleteById(idPartida);
     }
 
     private String safe(String value) {

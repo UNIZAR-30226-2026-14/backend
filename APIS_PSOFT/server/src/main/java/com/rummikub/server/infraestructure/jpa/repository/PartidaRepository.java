@@ -11,6 +11,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 //la biblioteca toma en cuenta los parametros de la clase entity para crear las operaciones
 //de comunicacion con la BBDD
 
-public interface PartidaRepository extends JpaRepository<PartidaEntity,String>{
+public interface PartidaRepository extends JpaRepository<PartidaEntity, Integer>{
     
 }

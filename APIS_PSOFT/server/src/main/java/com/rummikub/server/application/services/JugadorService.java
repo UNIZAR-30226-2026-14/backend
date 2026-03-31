@@ -1,4 +1,4 @@
-﻿package com.rummikub.server.application.services;
+package com.rummikub.server.application.services;
 
 import com.rummikub.server.api.dto.JugadorDTO;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
@@ -24,14 +24,14 @@ public class JugadorService {
                 .toList();
     }
 
-    public JugadorDTO getById(String id) {
+    public JugadorDTO getById(Integer id) {
         JugadorEntity jugador = jugadorRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Jugador no encontrado: " + id));
         return Mapper.toDTO(jugador);
     }
 
     public JugadorDTO create(JugadorEntity jugador) {
-        if (jugador == null || jugador.getId() == null || jugador.getId().isBlank()) {
+        if (jugador == null || jugador.getId() == null) {
             throw new IllegalArgumentException("El id del jugador es obligatorio");
         }
         if (jugador.getNombre() == null || jugador.getNombre().isBlank()) {
@@ -44,25 +44,28 @@ public class JugadorService {
             throw new IllegalStateException("Ya existe un jugador con id: " + jugador.getId());
         }
 
-        jugador.setMonedaCosmeticos(0);
-        if (jugador.getPerfilURL() == null) {
-            jugador.setPerfilURL("");
+        if (jugador.getUrlImgPerfil() == null) {
+            jugador.setUrlImgPerfil("");
         }
-        jugador.setPartidasGanadas(0);
-        jugador.setPartidasTotales(0);
         if (jugador.getCosmeticos() == null) {
             jugador.setCosmeticos("");
         }
+        jugador.setMonedas(0);
+        jugador.setPartidasGanadas(0);
+        jugador.setPartidasPerdidas(0);
+        jugador.setPartidasEmpatadas(0);
+        jugador.setPartidasPendientes(0);
+        jugador.setPartidasFinalizadas(0);
 
         return Mapper.toDTO(jugadorRepository.save(jugador));
     }
 
-    public JugadorDTO updateProfile(String id, JugadorEntity profileData) {
+    public JugadorDTO updateProfile(Integer id, JugadorEntity profileData) {
         if (profileData == null) {
             throw new IllegalArgumentException("Los datos de perfil son obligatorios");
         }
         boolean nombreVacio = profileData.getNombre() == null || profileData.getNombre().isBlank();
-        boolean urlVacia = profileData.getPerfilURL() == null || profileData.getPerfilURL().isBlank();
+        boolean urlVacia = profileData.getUrlImgPerfil() == null || profileData.getUrlImgPerfil().isBlank();
         if (nombreVacio && urlVacia) {
             throw new IllegalArgumentException("Debes indicar al menos un campo para actualizar");
         }
@@ -73,14 +76,14 @@ public class JugadorService {
         if (profileData.getNombre() != null && !profileData.getNombre().isBlank()) {
             jugador.setNombre(profileData.getNombre());
         }
-        if (profileData.getPerfilURL() != null) {
-            jugador.setPerfilURL(profileData.getPerfilURL());
+        if (profileData.getUrlImgPerfil() != null) {
+            jugador.setUrlImgPerfil(profileData.getUrlImgPerfil());
         }
 
         return Mapper.toDTO(jugadorRepository.save(jugador));
     }
 
-    public void delete(String id) {
+    public void delete(Integer id) {
         if (!jugadorRepository.existsById(id)) {
             throw new NoSuchElementException("Jugador no encontrado: " + id);
         }
