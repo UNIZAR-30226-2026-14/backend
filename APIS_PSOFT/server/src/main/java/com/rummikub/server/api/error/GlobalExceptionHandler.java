@@ -1,5 +1,6 @@
 package com.rummikub.server.api.error;
 
+import com.rummikub.server.application.services.BotUnavailableException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -46,6 +47,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleConstraintViolation(ConstraintViolationException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(BotUnavailableException.class)
+    public ResponseEntity<ApiErrorResponse> handleBotUnavailable(BotUnavailableException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)
