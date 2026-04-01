@@ -1,0 +1,34 @@
+{
+  "properties": [
+    {
+      "name": "spring.h2.console.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Habilita la consola web de H2."
+    },
+    {
+      "name": "spring.h2.console.path",
+      "type": "java.lang.String",
+      "description": "Path de la consola web de H2."
+    },
+    {
+      "name": "bot.ia.base-url",
+      "type": "java.lang.String",
+      "description": "URL base del servicio IA en Python."
+    },
+    {
+      "name": "bot.ia.move-path",
+      "type": "java.lang.String",
+      "description": "Path de la IA para solicitar jugada."
+    },
+    {
+      "name": "bot.ia.health-path",
+      "type": "java.lang.String",
+      "description": "Path de salud del servicio IA."
+    },
+    {
+      "name": "bot.ia.timeout-ms",
+      "type": "java.lang.Long",
+      "description": "Timeout en milisegundos de las llamadas HTTP a la IA."
+    }
+  ]
+}
