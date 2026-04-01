@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/bot/move"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: >-
+    {
+      "board": [],
+      "pool_count": 67,
+      "my_tiles": ["R1", "R2", "R3", "B5", "B6", "B7", "O10", "O11", "O12", "K9", "JOKER"],
+      "opponent_rack_counts": [14],
+      "opened": false,
+      "level": 2,
+      "randomness": 0.1,
+      "seed": 1234,
+      "turn_number": 1
+    }
+order: 2000

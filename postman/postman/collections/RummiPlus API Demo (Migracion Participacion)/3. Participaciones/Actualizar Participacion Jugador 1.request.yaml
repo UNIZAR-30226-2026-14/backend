@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/participaciones/{{jugador1Id}}/{{partidaId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "fichasActuales": 10,
+      "habilidadesActuales": "ROBAR_4,PROTEGER"
+    }
+order: 4000

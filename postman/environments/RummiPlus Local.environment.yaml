@@ -1,0 +1,14 @@
+name: RummiPlus Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:8080'
+    enabled: true
+  - key: jugador1Id
+    value: '101'
+    enabled: true
+  - key: jugador2Id
+    value: '102'
+    enabled: true
+  - key: partidaId
+    value: '5001'
+    enabled: true

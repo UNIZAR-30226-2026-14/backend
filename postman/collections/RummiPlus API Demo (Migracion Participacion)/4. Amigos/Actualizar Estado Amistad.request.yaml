@@ -1,0 +1,12 @@
+﻿$kind: http-request
+url: "{{baseUrl}}/api/amigos/{{jugador1Id}}/{{jugador2Id}}/estado"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "estado": "ACEPTADA"
+    }
+order: 3000

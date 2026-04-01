@@ -1,7 +1,13 @@
 # Use this workspace to collaborate
 workspace:
-  id: ce47c3c2-7c08-44be-8666-cd281557add1
+  id: ""
 
 localResources:
   collections:
     - ..\APIS_PSOFT\server\docs\postman\RummiPlus-API-Demo.postman_collection.json
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ..\postman\collections\RummiPlus API Demo (Migracion Participacion): 2f97f877-b481-45b3-8c7f-7051b8003e56

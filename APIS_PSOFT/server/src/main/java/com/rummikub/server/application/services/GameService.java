@@ -1,4 +1,4 @@
-﻿package com.rummikub.server.application.services;
+package com.rummikub.server.application.services;
 
 import com.rummikub.server.api.dto.game.CommandRequest;
 import com.rummikub.server.api.dto.game.CreateGameResponse;

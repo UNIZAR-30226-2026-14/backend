@@ -1,0 +1,9 @@
+﻿$kind: collection
+description: Coleccion de prueba alineada con IDs Integer, PK compuestas y
+  dominio PARTICIPACION.
+variables:
+  baseUrl: http://localhost:8080
+  jugador1Id: "1101"
+  jugador2Id: "1102"
+  partidaId: "51001"
+  fechaDemo: "2026-04-01"

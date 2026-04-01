@@ -1,5 +1,0 @@
-$kind: http-request
-name: Obtener Jugador 1
-method: GET
-url: '{{baseUrl}}/api/jugadores/{{jugador1Id}}'
-order: 5000

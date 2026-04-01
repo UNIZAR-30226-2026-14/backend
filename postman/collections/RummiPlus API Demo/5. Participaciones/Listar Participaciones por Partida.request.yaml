@@ -1,8 +1,0 @@
-﻿$kind: http-request
-name: Listar Participaciones por Partida
-method: GET
-url: '{{baseUrl}}/api/participaciones'
-order: 3000
-queryParams:
-  - key: partidaId
-    value: '{{partidaId}}'

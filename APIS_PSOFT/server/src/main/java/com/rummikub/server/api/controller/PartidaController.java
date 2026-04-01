@@ -1,4 +1,4 @@
-﻿package com.rummikub.server.api.controller;
+package com.rummikub.server.api.controller;
 
 import com.rummikub.server.api.dto.PartidaDTO;
 import com.rummikub.server.api.dto.partida.CreatePartidaRequest;

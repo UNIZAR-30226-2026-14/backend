@@ -1,0 +1,14 @@
+﻿$kind: http-request
+url: "{{baseUrl}}/api/amigos"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "jugador1Id": {{jugador1Id}},
+      "jugador2Id": {{jugador2Id}},
+      "estado": "PENDIENTE"
+    }
+order: 1000

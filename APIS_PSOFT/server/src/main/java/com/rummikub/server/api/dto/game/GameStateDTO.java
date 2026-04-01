@@ -1,4 +1,4 @@
-﻿package com.rummikub.server.api.dto.game;
+package com.rummikub.server.api.dto.game;
 
 import java.util.List;
 
