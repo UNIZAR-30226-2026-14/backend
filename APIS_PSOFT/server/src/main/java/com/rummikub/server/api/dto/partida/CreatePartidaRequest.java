@@ -2,6 +2,7 @@ package com.rummikub.server.api.dto.partida;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
@@ -17,6 +18,10 @@ public class CreatePartidaRequest {
 
     private String mercado;
     private String bolsa;
+
+    @Size(max = 5000, message = "El conjuntoMesa supera el tamano permitido")
+    private String conjuntoMesa;
+
     private boolean corriendo;
 
     public Integer getIdPartida() {
@@ -65,5 +70,13 @@ public class CreatePartidaRequest {
 
     public void setCorriendo(boolean corriendo) {
         this.corriendo = corriendo;
+    }
+
+    public String getConjuntoMesa() {
+        return conjuntoMesa;
+    }
+
+    public void setConjuntoMesa(String conjuntoMesa) {
+        this.conjuntoMesa = conjuntoMesa;
     }
 }

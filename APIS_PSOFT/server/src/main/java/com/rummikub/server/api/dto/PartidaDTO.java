@@ -20,5 +20,6 @@ public class PartidaDTO {
     private LocalDate fecha;
     private String mercado;
     private String bolsa;
+    private String conjuntoMesa;
     private boolean corriendo;
 }

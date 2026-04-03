@@ -14,7 +14,7 @@
 
 ## 4) Que demuestra cada bloque
 - `Jugadores`: endpoint HTTP en controller, datos de entrada a service, persistencia y salida DTO.
-- `Partidas`: flujo de creacion y actualizacion de estado de partida.
+- `Partidas`: flujo de creacion y actualizacion de estado de partida, incluyendo `conjuntoMesa` para reflejar las combinaciones en mesa.
 - `Participaciones`: relacion muchos-a-muchos `Jugador-Partida` con PK compuesta y estado por jugador.
 - `Amigos`: validacion de reglas de dominio (duplicados, no autoamistad), consulta filtrada por jugador con PK compuesta.
 - `Errores`: validaciones `@Valid` + `GlobalExceptionHandler` con respuesta estructurada.

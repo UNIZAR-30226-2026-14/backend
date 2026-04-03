@@ -35,6 +35,9 @@ public class PartidaEntity {
     @Column(name = "BOLSA")
     private String bolsa;
 
+    @Column(name = "CONJUNTO_MESA")
+    private String conjuntoMesa;
+
     @Column(name = "CORRIENDO", nullable = false)
     private boolean corriendo;
 
@@ -44,6 +47,7 @@ public class PartidaEntity {
         this.fecha = LocalDate.now();
         this.mercado = "";
         this.bolsa = "";
+        this.conjuntoMesa = "";
         this.corriendo = false;
     }
 }

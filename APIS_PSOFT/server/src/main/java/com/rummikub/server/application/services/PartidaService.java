@@ -45,6 +45,7 @@ public class PartidaService {
         partida.setFecha(dto.getFecha() == null ? LocalDate.now() : dto.getFecha());
         partida.setBolsa(safe(dto.getBolsa()));
         partida.setMercado(safe(dto.getMercado()));
+        partida.setConjuntoMesa(safe(dto.getConjuntoMesa()));
         partida.setCorriendo(dto.isCorriendo());
 
         return Mapper.toDTO(partidaRepository.save(partida));
@@ -58,6 +59,7 @@ public class PartidaService {
         partida.setFecha(dto.getFecha() == null ? partida.getFecha() : dto.getFecha());
         partida.setBolsa(safe(dto.getBolsa()));
         partida.setMercado(safe(dto.getMercado()));
+        partida.setConjuntoMesa(safe(dto.getConjuntoMesa()));
         partida.setCorriendo(dto.isCorriendo());
 
         return Mapper.toDTO(partidaRepository.save(partida));

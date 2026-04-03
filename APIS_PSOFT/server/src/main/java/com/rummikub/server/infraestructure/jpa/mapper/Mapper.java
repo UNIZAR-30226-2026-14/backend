@@ -21,6 +21,7 @@ public class Mapper {
                 .fecha(part.getFecha())
                 .bolsa(part.getBolsa())
                 .mercado(part.getMercado())
+                .conjuntoMesa(part.getConjuntoMesa())
                 .corriendo(part.isCorriendo())
                 .build();
     }

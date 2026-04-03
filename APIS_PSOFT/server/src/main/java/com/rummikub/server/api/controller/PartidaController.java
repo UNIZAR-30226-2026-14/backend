@@ -44,6 +44,7 @@ public class PartidaController {
                 .fecha(request.getFecha())
                 .bolsa(request.getBolsa())
                 .mercado(request.getMercado())
+                .conjuntoMesa(request.getConjuntoMesa())
                 .corriendo(request.isCorriendo())
                 .build();
         return partidaService.create(dto);
@@ -56,6 +57,7 @@ public class PartidaController {
                 .fecha(request.getFecha())
                 .bolsa(request.getBolsa())
                 .mercado(request.getMercado())
+                .conjuntoMesa(request.getConjuntoMesa())
                 .corriendo(request.isCorriendo())
                 .build();
 
