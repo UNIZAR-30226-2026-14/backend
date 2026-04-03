@@ -1,4 +1,4 @@
-{
+﻿{
   "info": {
     "name": "RummiPlus API Demo (Migracion Participacion)",
     "_postman_id": "2f97f877-b481-45b3-8c7f-7051b8003e56",
@@ -140,7 +140,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idPartida\": {{partidaId}},\n  \"turno\": 0,\n  \"fecha\": \"2026-03-31\",\n  \"mercado\": \"obj1,obj2\",\n  \"bolsa\": \"f1,f2,f3\",\n  \"corriendo\": false\n}"
+              "raw": "{\n  \"idPartida\": {{partidaId}},\n  \"turno\": 0,\n  \"fecha\": \"2026-03-31\",\n  \"mercado\": \"obj1,obj2\",\n  \"bolsa\": \"f1,f2,f3\",\n  \"conjuntoMesa\": \"[B01,B02,B03]|[R05,R06,R07]\",\n  \"corriendo\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/partidas",
@@ -166,7 +166,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"turno\": 1,\n  \"fecha\": \"2026-03-31\",\n  \"mercado\": \"obj3,obj4\",\n  \"bolsa\": \"f4,f5,f6\",\n  \"corriendo\": true\n}"
+              "raw": "{\n  \"turno\": 1,\n  \"fecha\": \"2026-03-31\",\n  \"mercado\": \"obj3,obj4\",\n  \"bolsa\": \"f4,f5,f6\",\n  \"conjuntoMesa\": \"[B01,B02,B03,B04]|[R05,R06,R07]\",\n  \"corriendo\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/partidas/{{partidaId}}",
@@ -390,6 +390,119 @@
       ]
     },
     {
+      "name": "6. Flujo 4 Movimientos",
+      "item": [
+        {
+          "name": "Movimiento 1 - Jugador 1",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turno\": 1,\n  \"fecha\": \"2026-03-31\",\n  \"mercado\": \"obj3,obj4\",\n  \"bolsa\": \"f4,f5,f6\",\n  \"conjuntoMesa\": \"[B01,B02,B03]|[R05,R06,R07]\",\n  \"corriendo\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Movimiento 2 - Jugador 2",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turno\": 2,\n  \"fecha\": \"2026-03-31\",\n  \"mercado\": \"obj3,obj4\",\n  \"bolsa\": \"f4,f5,f6\",\n  \"conjuntoMesa\": \"[B01,B02,B03]|[R05,R06,R07]|[O08,O09,O10]\",\n  \"corriendo\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Movimiento 3 - Jugador 1",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turno\": 3,\n  \"fecha\": \"2026-03-31\",\n  \"mercado\": \"obj3,obj4\",\n  \"bolsa\": \"f4,f5,f6\",\n  \"conjuntoMesa\": \"[B01,B02,B03,B04]|[R05,R06,R07]|[O08,O09,O10]\",\n  \"corriendo\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Movimiento 4 - Jugador 2",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turno\": 4,\n  \"fecha\": \"2026-03-31\",\n  \"mercado\": \"obj3,obj4\",\n  \"bolsa\": \"f4,f5,f6\",\n  \"conjuntoMesa\": \"[B01,B02,B03,B04]|[R05,R06,R07,R08]|[O08,O09,O10]\",\n  \"corriendo\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "5. Errores de Validacion (demo)",
       "item": [
         {
@@ -422,3 +535,4 @@
     }
   ]
 }
+

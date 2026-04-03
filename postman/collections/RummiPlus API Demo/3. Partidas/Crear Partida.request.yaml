@@ -1,4 +1,4 @@
-﻿$kind: http-request
+$kind: http-request
 name: Crear Partida
 method: POST
 url: '{{baseUrl}}/api/partidas'
@@ -14,6 +14,5 @@ body:
       "turno": 0,
       "fecha": "2026-03-31",
       "mercado": "obj1,obj2",
-      "bolsa": "f1,f2,f3",
-      "corriendo": false
+      "bolsa": "f1,f2,f3",`r`n      "conjuntoMesa": "[B01,B02,B03]|[R05,R06,R07]",`r`n      "corriendo": false
     }

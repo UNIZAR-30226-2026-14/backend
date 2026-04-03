@@ -7,11 +7,11 @@ body:
   type: text
   content: |-
     {
-      "turno": 1,
+      "turno": 3,
       "fecha": "2026-03-31",
       "mercado": "obj3,obj4",
       "bolsa": "f4,f5,f6",
-      "conjuntoMesa": "[B01,B02,B03,B04]|[R05,R06,R07]",
+      "conjuntoMesa": "[B01,B02,B03,B04]|[R05,R06,R07]|[O08,O09,O10]",
       "corriendo": true
     }
-order: 2000
+order: 3000
