@@ -1,4 +1,4 @@
-﻿package com.rummikub.server.api.dto.game;
+package com.rummikub.server.api.dto.game;
 
 public class CreateGameResponse {
     private String gameId;

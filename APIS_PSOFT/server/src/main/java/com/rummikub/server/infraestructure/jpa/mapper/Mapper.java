@@ -50,7 +50,7 @@ public class Mapper {
         return ListaDeAmigosDTO.builder()
                 .jugador1(lis.getJugador1().getId())
                 .jugador2(lis.getJugador2().getId())
-                .fecha(lis.getFecha())
+                .fecha(lis.getFecha() != null ? lis.getFecha().toString() : null)
                 .estado(lis.getEstado())
                 .build();
     }

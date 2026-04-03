@@ -12,6 +12,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "LISTA_AMIGOS")
 @Getter
@@ -34,12 +36,12 @@ public class ListaDeAmigosEntity {
     private JugadorEntity jugador2;
 
     @Column(name = "FECHA", nullable = false)
-    private String fecha;
+    private LocalDate fecha;
 
     @Column(name = "ESTADO", nullable = false)
     private String estado;
 
-    public ListaDeAmigosEntity(JugadorEntity jugador1, JugadorEntity jugador2, String estado, String fecha) {
+    public ListaDeAmigosEntity(JugadorEntity jugador1, JugadorEntity jugador2, String estado, LocalDate fecha) {
         this.id = new ListaDeAmigosId(jugador1.getId(), jugador2.getId());
         this.jugador1 = jugador1;
         this.jugador2 = jugador2;

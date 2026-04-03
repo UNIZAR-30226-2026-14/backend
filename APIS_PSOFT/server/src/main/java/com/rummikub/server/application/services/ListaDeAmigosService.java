@@ -63,7 +63,16 @@ public class ListaDeAmigosService {
         }
 
         String finalEstado = (estado == null || estado.isBlank()) ? "PENDIENTE" : estado;
-        String finalFecha = (fecha == null || fecha.isBlank()) ? LocalDate.now().toString() : fecha;
+        LocalDate finalFecha;
+        if (fecha == null || fecha.isBlank()) {
+            finalFecha = LocalDate.now();
+        } else {
+            try {
+                finalFecha = LocalDate.parse(fecha);
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("La fecha debe tener formato yyyy-MM-dd");
+            }
+        }
 
         ListaDeAmigosEntity nuevaRelacion = new ListaDeAmigosEntity(jugador1, jugador2, finalEstado, finalFecha);
         return Mapper.toDTO(listaDeAmigosRepository.save(nuevaRelacion));

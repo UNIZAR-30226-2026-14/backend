@@ -1,4 +1,4 @@
-﻿package com.rummikub.server.api.dto.game;
+package com.rummikub.server.api.dto.game;
 
 public class JoinGameRequest {
     private String playerId;
