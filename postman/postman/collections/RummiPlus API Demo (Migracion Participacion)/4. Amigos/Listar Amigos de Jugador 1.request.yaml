@@ -1,6 +1,0 @@
-$kind: http-request
-url: "{{baseUrl}}/api/amigos?jugadorId={{jugador1Id}}"
-method: GET
-queryParams:
-  jugadorId: "{{jugador1Id}}"
-order: 2000

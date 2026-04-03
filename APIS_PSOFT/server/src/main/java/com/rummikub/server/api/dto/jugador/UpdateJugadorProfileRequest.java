@@ -1,4 +1,4 @@
-package com.rummikub.server.api.dto.jugador;
+﻿package com.rummikub.server.api.dto.jugador;
 
 import jakarta.validation.constraints.Size;
 

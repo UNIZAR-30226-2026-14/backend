@@ -1,0 +1,8 @@
+$kind: http-request
+name: Listar Amigos de Jugador 1
+method: GET
+url: '{{baseUrl}}/api/amigos'
+order: 2000
+queryParams:
+  - key: jugadorId
+    value: '{{jugador1Id}}'

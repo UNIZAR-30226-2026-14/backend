@@ -1,0 +1,19 @@
+﻿$kind: http-request
+name: Crear Partida
+method: POST
+url: '{{baseUrl}}/api/partidas'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "idPartida": {{partidaId}},
+      "turno": 0,
+      "fecha": "2026-03-31",
+      "mercado": "obj1,obj2",
+      "bolsa": "f1,f2,f3",
+      "corriendo": false
+    }

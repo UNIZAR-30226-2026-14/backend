@@ -1,0 +1,17 @@
+﻿$kind: http-request
+name: Crear Participacion Jugador 2
+method: POST
+url: '{{baseUrl}}/api/participaciones'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "idJugador": {{jugador2Id}},
+      "idPartida": {{partidaId}},
+      "fichasActuales": 14,
+      "habilidadesActuales": ""
+    }

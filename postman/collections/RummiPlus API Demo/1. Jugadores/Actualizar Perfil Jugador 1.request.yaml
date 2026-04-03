@@ -1,0 +1,15 @@
+﻿$kind: http-request
+name: Actualizar Perfil Jugador 1
+method: PATCH
+url: '{{baseUrl}}/api/jugadores/{{jugador1Id}}/perfil'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Alex Dev",
+      "urlImgPerfil": "https://example.com/avatar/alex.png"
+    }
