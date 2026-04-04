@@ -5,7 +5,6 @@ import com.rummikub.server.api.dto.partida.CreatePartidaRequest;
 import com.rummikub.server.api.dto.partida.UpdatePartidaRequest;
 import com.rummikub.server.application.services.PartidaService;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -72,10 +71,5 @@ public class PartidaController {
     @PostMapping("/{id}/iniciar")
     public PartidaDTO iniciar(@PathVariable Integer id) {
         return partidaService.iniciar(id);
-    }
-
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Integer id) {
-        partidaService.delete(id);
     }
 }

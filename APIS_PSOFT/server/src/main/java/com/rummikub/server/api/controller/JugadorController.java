@@ -6,7 +6,6 @@ import com.rummikub.server.api.dto.jugador.UpdateJugadorProfileRequest;
 import com.rummikub.server.application.services.JugadorService;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -54,10 +53,5 @@ public class JugadorController {
         jugador.setUrlImgPerfil(request.getUrlImgPerfil());
 
         return jugadorService.updateProfile(id, jugador);
-    }
-
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Integer id) {
-        jugadorService.delete(id);
     }
 }

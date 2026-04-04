@@ -1,30 +1,27 @@
-# RummiPlus Backend - Guia para Frontend
+﻿# RummiPlus Backend - Guia para Frontend
 
-Este documento explica, paso a paso, como conectaros al backend aunque no tengais experiencia en backend.
+Guia rapida y actualizada para consumir la API desde frontend.
 
-## 1. Uso del backend (consumidores de la API)
+## 1. Flujo para frontend
 
-Si trabajas en frontend (web o escritorio), tu flujo es este:
+1. Levantar PostgreSQL.
+2. Levantar Spring Boot.
+3. Probar con Postman.
+4. Consumir endpoints desde frontend (`fetch`/axios).
 
-1. Levantar PostgreSQL con Docker.
-2. Levantar Spring Boot (API REST).
-3. Probar que responde con Postman.
-4. Consumir endpoints desde frontend con `fetch`/axios.
-
-El frontend **solo** habla con el backend en `http://localhost:8080`.  
-El backend se encarga de base de datos y logica.
+El frontend se conecta a `http://localhost:8080`.
 
 ## 2. Arranque rapido
 
-### 2.1 Levantar base de datos (PostgreSQL)
+### 2.1 Base de datos (PostgreSQL)
 
-Desde la carpeta `APIS_PSOFT`:
+Desde `APIS_PSOFT`:
 
 ```powershell
 docker compose up -d
 ```
 
-Esto levanta PostgreSQL con:
+Credenciales esperadas por la API:
 
 - Host: `localhost`
 - Puerto: `5432`
@@ -32,7 +29,7 @@ Esto levanta PostgreSQL con:
 - Usuario: `admin`
 - Password: `admin123`
 
-### 2.2 Levantar backend (Spring Boot)
+### 2.2 Backend (Spring Boot)
 
 Desde `APIS_PSOFT/server`:
 
@@ -40,38 +37,56 @@ Desde `APIS_PSOFT/server`:
 .\mvnw.cmd clean spring-boot:run
 ```
 
-Si todo va bien, en terminal veras:
+## 3. Coleccion Postman
 
-- `Tomcat started on port 8080`
-- `Started ServerApplication`
-
-## 3. Importar pruebas en Postman
-
-Importa esta coleccion (JSON):
+Importar:
 
 - `postman/collections/RummiPlus-API-Demo.postman_collection.json`
 
-Variable importante:
+Variable clave:
 
 - `baseUrl = http://localhost:8080`
 
-## 4. Orden recomendado de pruebas
+## 4. Cambios importantes de logica de juego
 
-Ejecutar en este orden:
+### 4.1 Inicio real de partida
 
-1. `1. Jugadores`
-2. `2. Partidas`
-3. `3. Participaciones`
-4. `4. Amigos`
-5. `6. Flujo 4 Movimientos`
-6. `5. Errores de Validacion (demo)`
+Nuevo endpoint:
 
-Notas:
+- `POST /api/partidas/{id}/iniciar`
 
-- Si `Crear Jugador 1/2` devuelve `409`, significa que ya existe ese id (comportamiento correcto).
-- En Partidas ya existe `conjuntoMesa` en create/update.
+Al iniciar:
 
-## 5. Endpoints principales para frontend
+- Se crea bolsa aleatoria de Rummikub original (106 fichas).
+- Se reparten 14 fichas por jugador (guardadas en `participacion.manoActual`).
+- `participacion.fichasActuales` se actualiza a `14`.
+- `partida.bolsa` guarda solo fichas no jugadas (ni mesa ni manos).
+- `partida.conjuntoMesa` empieza vacio.
+
+### 4.2 Turnos y timeout
+
+Nuevo endpoint para frontend (fin de turno):
+
+- `GET /api/partidas/{id}/siguiente-turno`
+
+Reglas aplicadas:
+
+- 4 slots de turno maximo (`0..3`).
+- Si faltan jugadores, se saltan slots vacios.
+- Timeout de turno automatico: 60 segundos.
+
+### 4.3 Campos nuevos utiles para frontend
+
+En `Partida`:
+
+- `turnoInicio` (timestamp inicio del turno actual)
+
+En `Participacion`:
+
+- `manoActual` (CSV de fichas en mano)
+- `ordenTurno` (slot de turno)
+
+## 5. Endpoints principales
 
 ### Jugadores
 
@@ -85,16 +100,8 @@ Notas:
 - `GET /api/partidas/{id}`
 - `POST /api/partidas`
 - `PUT /api/partidas/{id}`
-
-`Partida` incluye:
-
-- `idPartida`
-- `turno`
-- `fecha`
-- `mercado`
-- `bolsa`
-- `conjuntoMesa`
-- `corriendo`
+- `POST /api/partidas/{id}/iniciar`
+- `GET /api/partidas/{id}/siguiente-turno`
 
 ### Participaciones
 
@@ -108,63 +115,63 @@ Notas:
 - `POST /api/amigos`
 - `PATCH /api/amigos/{jugador1Id}/{jugador2Id}/estado`
 
-## 6. Ejemplo rapido desde frontend
+### Limpieza total de datos (solo demo/dev)
+
+- `DELETE /api/admin/wipe`
+
+Este es el unico endpoint `DELETE` disponible.
+
+## 6. Orden recomendado de pruebas (coleccion actual)
+
+1. `1. Jugadores`
+2. `2. Partidas` (crear partida con `corriendo=false`)
+3. `3. Participaciones`
+4. `4. Amigos`
+5. `7. Logica Inicio y Turnos`
+6. `8. Limpieza Base (Demo)` (opcional al final)
+7. `5. Errores de Validacion (demo)`
+
+Nota importante:
+
+- La carpeta `6. Flujo 4 Movimientos` es de demo manual y puede sobrescribir campos como `bolsa`.  
+Para validar la logica nueva, usa la carpeta `7. Logica Inicio y Turnos`.
+
+## 7. Ejemplo rapido frontend
 
 ```javascript
-const res = await fetch("http://localhost:8080/api/partidas/5001");
-const data = await res.json();
-console.log(data);
-```
-
-Ejemplo update de partida con `conjuntoMesa`:
-
-```javascript
-await fetch("http://localhost:8080/api/partidas/5001", {
-  method: "PUT",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    turno: 2,
-    fecha: "2026-03-31",
-    mercado: "obj3,obj4",
-    bolsa: "f4,f5,f6",
-    conjuntoMesa: "[B01,B02,B03]|[R05,R06,R07]|[O08,O09,O10]",
-    corriendo: true
-  })
+const start = await fetch("http://localhost:8080/api/partidas/5001/iniciar", {
+  method: "POST"
 });
+const partida = await start.json();
+console.log(partida.turno, partida.turnoInicio);
 ```
 
-## 7. Errores comunes y solucion
+Fin de turno:
 
-### Error: `Port 8080 was already in use`
+```javascript
+await fetch("http://localhost:8080/api/partidas/5001/siguiente-turno");
+```
 
-Hay otra app en 8080.
+## 8. Problemas comunes
+
+### 8.1 No conecta a PostgreSQL
+
+Verifica contenedor/servicio y credenciales (`admin/admin123`).
+
+### 8.2 Error de puerto 8080 ocupado
 
 ```powershell
 Get-NetTCPConnection -LocalPort 8080 | Select-Object OwningProcess,State
 Stop-Process -Id <PID> -Force
 ```
 
-### Error: no conecta a PostgreSQL
+### 8.3 Bot IA (opcional)
 
-Comprobar contenedor:
-
-```powershell
-docker ps
-```
-
-Debe aparecer `rummiplus-postgres` con `0.0.0.0:5432->5432`.
-
-### Error 400 / 409 en Postman
-
-- `400`: payload invalido (campos faltantes/formato mal).
-- `409`: conflicto de negocio (duplicado, etc.).
-
-## 8. (Opcional) IA del bot
-
-Solo necesario si vais a usar endpoints de bot:
+Solo si usais bot:
 
 - `GET /api/bot/health`
 - `POST /api/bot/move`
 
-El servicio Python de IA debe estar levantado en `http://127.0.0.1:8765`.
+Debe estar levantado el servicio IA en `http://127.0.0.1:8765`.
+
 

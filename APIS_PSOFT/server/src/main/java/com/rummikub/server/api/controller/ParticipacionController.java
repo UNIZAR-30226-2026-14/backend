@@ -5,7 +5,6 @@ import com.rummikub.server.api.dto.participacion.CreateParticipacionRequest;
 import com.rummikub.server.api.dto.participacion.UpdateParticipacionRequest;
 import com.rummikub.server.application.services.ParticipacionService;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,10 +60,5 @@ public class ParticipacionController {
                 .habilidadesActuales(request.getHabilidadesActuales())
                 .build();
         return participacionService.update(idJugador, idPartida, dto);
-    }
-
-    @DeleteMapping("/{idJugador}/{idPartida}")
-    public void delete(@PathVariable Integer idJugador, @PathVariable Integer idPartida) {
-        participacionService.delete(idJugador, idPartida);
     }
 }
