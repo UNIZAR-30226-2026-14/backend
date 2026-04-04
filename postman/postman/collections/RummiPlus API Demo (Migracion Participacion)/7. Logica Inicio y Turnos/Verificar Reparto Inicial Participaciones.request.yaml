@@ -1,0 +1,38 @@
+$kind: http-request
+url: "{{baseUrl}}/api/participaciones?partidaId={{partidaId}}"
+method: GET
+queryParams:
+  partidaId: "{{partidaId}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+
+      pm.test("Participaciones con mano inicial y orden de turno", function () {
+        const body = pm.response.json();
+        const expectedPlayers = Number(pm.collectionVariables.get("jugadoresActivosEsperados") || "2");
+        pm.expect(body).to.be.an("array");
+        pm.expect(body.length).to.eql(expectedPlayers);
+
+        const slots = new Set();
+        body.forEach(function (p) {
+          pm.expect(p).to.have.property("ordenTurno");
+          pm.expect(p.ordenTurno).to.be.oneOf([0, 1, 2, 3]);
+          slots.add(p.ordenTurno);
+
+          pm.expect(p).to.have.property("manoActual");
+          pm.expect(p.manoActual).to.be.a("string");
+          pm.expect(p.manoActual.length).to.be.greaterThan(0);
+
+          const tiles = p.manoActual.split(",").filter(Boolean);
+          pm.expect(tiles.length).to.eql(14);
+          pm.expect(p.fichasActuales).to.eql(14);
+        });
+
+        pm.expect(slots.size).to.eql(expectedPlayers);
+      });
+    language: text/javascript
+order: 3000

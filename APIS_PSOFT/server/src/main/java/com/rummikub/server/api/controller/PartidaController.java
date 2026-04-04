@@ -64,6 +64,16 @@ public class PartidaController {
         return partidaService.update(id, dto);
     }
 
+    @GetMapping("/{id}/siguiente-turno")
+    public PartidaDTO siguienteTurno(@PathVariable Integer id) {
+        return partidaService.siguienteTurno(id);
+    }
+
+    @PostMapping("/{id}/iniciar")
+    public PartidaDTO iniciar(@PathVariable Integer id) {
+        return partidaService.iniciar(id);
+    }
+
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
         partidaService.delete(id);

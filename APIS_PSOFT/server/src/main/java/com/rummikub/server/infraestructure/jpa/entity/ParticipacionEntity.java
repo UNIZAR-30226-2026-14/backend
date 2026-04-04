@@ -36,8 +36,14 @@ public class ParticipacionEntity {
     @Column(name = "FICHAS_ACTUALES", nullable = false)
     private int fichasActuales;
 
-    @Column(name = "HABILIDADES_ACTUALES")
+    @Column(name = "HABILIDADES_ACTUALES", length = 1000)
     private String habilidadesActuales;
+
+    @Column(name = "MANO_ACTUAL", length = 5000)
+    private String manoActual;
+
+    @Column(name = "ORDEN_TURNO")
+    private Integer ordenTurno;
 
     public ParticipacionEntity(JugadorEntity jugador, PartidaEntity partida, int fichasActuales, String habilidadesActuales) {
         this.id = new ParticipacionId(jugador.getId(), partida.getIdPartida());
@@ -45,5 +51,7 @@ public class ParticipacionEntity {
         this.partida = partida;
         this.fichasActuales = fichasActuales;
         this.habilidadesActuales = habilidadesActuales;
+        this.manoActual = "";
+        this.ordenTurno = null;
     }
 }

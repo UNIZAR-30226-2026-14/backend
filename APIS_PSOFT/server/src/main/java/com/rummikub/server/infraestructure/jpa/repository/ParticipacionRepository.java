@@ -10,4 +10,6 @@ public interface ParticipacionRepository extends JpaRepository<ParticipacionEnti
     List<ParticipacionEntity> findByJugador_Id(Integer jugadorId);
 
     List<ParticipacionEntity> findByPartida_IdPartida(Integer partidaId);
+
+    List<ParticipacionEntity> findByPartida_IdPartidaOrderByJugador_Id(Integer partidaId);
 }

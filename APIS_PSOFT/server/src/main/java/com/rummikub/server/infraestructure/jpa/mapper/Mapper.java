@@ -22,6 +22,7 @@ public class Mapper {
                 .bolsa(part.getBolsa())
                 .mercado(part.getMercado())
                 .conjuntoMesa(part.getConjuntoMesa())
+                .turnoInicio(part.getTurnoInicio())
                 .corriendo(part.isCorriendo())
                 .build();
     }
@@ -65,6 +66,8 @@ public class Mapper {
                 .idPartida(participacion.getPartida().getIdPartida())
                 .fichasActuales(participacion.getFichasActuales())
                 .habilidadesActuales(participacion.getHabilidadesActuales())
+                .manoActual(participacion.getManoActual())
+                .ordenTurno(participacion.getOrdenTurno())
                 .build();
     }
 }

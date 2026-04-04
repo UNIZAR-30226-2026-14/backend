@@ -12,5 +12,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 //de comunicacion con la BBDD
 
 public interface PartidaRepository extends JpaRepository<PartidaEntity, Integer>{
-    
+    java.util.List<PartidaEntity> findByCorriendoTrue();
 }

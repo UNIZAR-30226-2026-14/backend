@@ -80,6 +80,8 @@ public class ParticipacionService {
         entity.setPartida(partida);
         entity.setFichasActuales(dto.getFichasActuales());
         entity.setHabilidadesActuales(dto.getHabilidadesActuales() == null ? "" : dto.getHabilidadesActuales());
+        entity.setManoActual(dto.getManoActual() == null ? "" : dto.getManoActual());
+        entity.setOrdenTurno(dto.getOrdenTurno());
         return Mapper.toDTO(participacionRepository.save(entity));
     }
 }

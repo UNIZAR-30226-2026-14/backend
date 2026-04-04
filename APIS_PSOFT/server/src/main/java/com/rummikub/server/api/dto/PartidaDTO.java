@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -21,5 +22,6 @@ public class PartidaDTO {
     private String mercado;
     private String bolsa;
     private String conjuntoMesa;
+    private LocalDateTime turnoInicio;
     private boolean corriendo;
 }

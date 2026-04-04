@@ -6,3 +6,4 @@ variables:
   jugador1Id: "101"
   jugador2Id: "102"
   partidaId: "5001"
+  jugadoresActivosEsperados: "2"

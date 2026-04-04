@@ -21,6 +21,10 @@
     {
       "key": "partidaId",
       "value": "5001"
+    },
+    {
+      "key": "jugadoresActivosEsperados",
+      "value": "2"
     }
   ],
   "item": [
@@ -496,6 +500,224 @@
                 "api",
                 "partidas",
                 "{{partidaId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Logica Inicio y Turnos",
+      "item": [
+        {
+          "name": "Iniciar Partida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Partida iniciada con turno inicial\", function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.corriendo).to.eql(true);",
+                  "  pm.expect(body.turno).to.eql(0);",
+                  "  pm.expect(body.bolsa).to.be.a(\"string\");",
+                  "  pm.expect(body.bolsa.length).to.be.greaterThan(0);",
+                  "  pm.expect(body).to.have.property(\"turnoInicio\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}/iniciar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}",
+                "iniciar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verificar Estado Partida Tras Inicio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Estado contiene datos de juego inicial\", function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.corriendo).to.eql(true);",
+                  "  pm.expect(body.turno).to.be.oneOf([0, 1, 2, 3]);",
+                  "  pm.expect(body.bolsa).to.be.a(\"string\");",
+                  "  pm.expect(body.bolsa.length).to.be.greaterThan(0);",
+                  "  pm.expect(body).to.have.property(\"turnoInicio\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verificar Reparto Inicial Participaciones",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Participaciones con mano inicial y orden de turno\", function () {",
+                  "  const body = pm.response.json();",
+                  "  const expectedPlayers = Number(pm.collectionVariables.get(\"jugadoresActivosEsperados\") || \"2\");",
+                  "  pm.expect(body).to.be.an(\"array\");",
+                  "  pm.expect(body.length).to.eql(expectedPlayers);",
+                  "",
+                  "  const slots = new Set();",
+                  "  body.forEach(function (p) {",
+                  "    pm.expect(p).to.have.property(\"ordenTurno\");",
+                  "    pm.expect(p.ordenTurno).to.be.oneOf([0, 1, 2, 3]);",
+                  "    slots.add(p.ordenTurno);",
+                  "",
+                  "    pm.expect(p).to.have.property(\"manoActual\");",
+                  "    pm.expect(p.manoActual).to.be.a(\"string\");",
+                  "    pm.expect(p.manoActual.length).to.be.greaterThan(0);",
+                  "",
+                  "    const tiles = p.manoActual.split(\",\").filter(Boolean);",
+                  "    pm.expect(tiles.length).to.eql(14);",
+                  "    pm.expect(p.fichasActuales).to.eql(14);",
+                  "  });",
+                  "",
+                  "  pm.expect(slots.size).to.eql(expectedPlayers);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/participaciones?partidaId={{partidaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "participaciones"
+              ],
+              "query": [
+                {
+                  "key": "partidaId",
+                  "value": "{{partidaId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Siguiente Turno 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Turno avanza correctamente\", function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.corriendo).to.eql(true);",
+                  "  pm.expect(body.turno).to.eql(1);",
+                  "  pm.expect(body).to.have.property(\"turnoInicio\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}/siguiente-turno",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}",
+                "siguiente-turno"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Siguiente Turno 2 (vuelve a jugador 1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Con 2 jugadores el turno vuelve al slot 0\", function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.corriendo).to.eql(true);",
+                  "  pm.expect(body.turno).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}/siguiente-turno",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidas",
+                "{{partidaId}}",
+                "siguiente-turno"
               ]
             }
           }

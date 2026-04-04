@@ -16,4 +16,6 @@ public class ParticipacionDTO {
     private Integer idPartida;
     private int fichasActuales;
     private String habilidadesActuales;
+    private String manoActual;
+    private Integer ordenTurno;
 }

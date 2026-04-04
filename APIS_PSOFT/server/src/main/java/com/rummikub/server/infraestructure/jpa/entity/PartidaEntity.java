@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "PARTIDA")
@@ -29,14 +30,17 @@ public class PartidaEntity {
     @Column(name = "FECHA", nullable = false)
     private LocalDate fecha;
 
-    @Column(name = "MERCADO")
+    @Column(name = "MERCADO", length = 5000)
     private String mercado;
 
-    @Column(name = "BOLSA")
+    @Column(name = "BOLSA", length = 5000)
     private String bolsa;
 
-    @Column(name = "CONJUNTO_MESA")
+    @Column(name = "CONJUNTO_MESA", length = 10000)
     private String conjuntoMesa;
+
+    @Column(name = "TURNO_INICIO")
+    private LocalDateTime turnoInicio;
 
     @Column(name = "CORRIENDO", nullable = false)
     private boolean corriendo;
@@ -48,6 +52,7 @@ public class PartidaEntity {
         this.mercado = "";
         this.bolsa = "";
         this.conjuntoMesa = "";
+        this.turnoInicio = null;
         this.corriendo = false;
     }
 }
