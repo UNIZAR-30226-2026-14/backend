@@ -6,6 +6,8 @@ import com.rummikub.server.api.dto.game.CreateGameResponse;
 import com.rummikub.server.api.dto.game.GameStateDTO;
 import com.rummikub.server.api.dto.game.JoinGameRequest;
 import com.rummikub.server.application.services.GameService;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/games")
+@CrossOrigin(origins = "*")
 public class GameController {
 
     private final GameService gameService;

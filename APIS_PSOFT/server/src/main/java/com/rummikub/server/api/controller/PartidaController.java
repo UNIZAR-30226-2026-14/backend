@@ -5,6 +5,8 @@ import com.rummikub.server.api.dto.partida.CreatePartidaRequest;
 import com.rummikub.server.api.dto.partida.UpdatePartidaRequest;
 import com.rummikub.server.application.services.PartidaService;
 import jakarta.validation.Valid;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +19,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/partidas")
+@CrossOrigin(origins = "*")
 public class PartidaController {
 
     private final PartidaService partidaService;
