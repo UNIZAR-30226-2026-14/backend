@@ -39,6 +39,13 @@ public class ParticipacionService {
         return participacionRepository.findByPartida_IdPartida(idPartida).stream().map(Mapper::toDTO).toList();
     }
 
+    public ParticipacionDTO getById(Integer idJugador, Integer idPartida) {
+        ParticipacionId id = new ParticipacionId(idJugador, idPartida);
+        ParticipacionEntity entity = participacionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Participacion no encontrada"));
+        return Mapper.toDTO(entity);
+    }
+
     public ParticipacionDTO create(ParticipacionDTO dto) {
         if (dto.getIdJugador() == null || dto.getIdPartida() == null) {
             throw new IllegalArgumentException("idJugador e idPartida son obligatorios");

@@ -23,6 +23,9 @@ public class Mapper {
                 .mercado(part.getMercado())
                 .conjuntoMesa(part.getConjuntoMesa())
                 .turnoInicio(part.getTurnoInicio())
+                .estado(part.getEstado())
+                .ganadorId(part.getGanadorId())
+                .puntuacionFinal(part.getPuntuacionFinal())
                 .corriendo(part.isCorriendo())
                 .build();
     }

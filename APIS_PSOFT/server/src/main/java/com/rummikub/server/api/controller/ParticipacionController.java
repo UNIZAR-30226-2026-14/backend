@@ -39,6 +39,11 @@ public class ParticipacionController {
         return participacionService.getAll();
     }
 
+    @GetMapping("/{idJugador}/{idPartida}")
+    public ParticipacionDTO getById(@PathVariable Integer idJugador, @PathVariable Integer idPartida) {
+        return participacionService.getById(idJugador, idPartida);
+    }
+
     @PostMapping
     public ParticipacionDTO create(@Valid @RequestBody CreateParticipacionRequest request) {
         ParticipacionDTO dto = ParticipacionDTO.builder()

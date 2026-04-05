@@ -15,19 +15,22 @@ public class AdminDataService {
     private final PartidaRepository partidaRepository;
     private final JugadorRepository jugadorRepository;
     private final PartidaService partidaService;
+    private final AuthService authService;
 
     public AdminDataService(
             ListaDeAmigosRepository listaDeAmigosRepository,
             ParticipacionRepository participacionRepository,
             PartidaRepository partidaRepository,
             JugadorRepository jugadorRepository,
-            PartidaService partidaService
+            PartidaService partidaService,
+            AuthService authService
     ) {
         this.listaDeAmigosRepository = listaDeAmigosRepository;
         this.participacionRepository = participacionRepository;
         this.partidaRepository = partidaRepository;
         this.jugadorRepository = jugadorRepository;
         this.partidaService = partidaService;
+        this.authService = authService;
     }
 
     @Transactional
@@ -38,5 +41,6 @@ public class AdminDataService {
         partidaRepository.deleteAllInBatch();
         jugadorRepository.deleteAllInBatch();
         partidaService.clearTurnRuntimeCache();
+        authService.clearSessions();
     }
 }

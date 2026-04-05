@@ -40,6 +40,9 @@ public class JugadorService {
         if (jugador.getContrasena() == null || jugador.getContrasena().isBlank()) {
             throw new IllegalArgumentException("La contrasena del jugador es obligatoria");
         }
+        if (jugadorRepository.existsByNombreIgnoreCase(jugador.getNombre())) {
+            throw new IllegalStateException("Ya existe un jugador con nombre: " + jugador.getNombre());
+        }
         if (jugadorRepository.existsById(jugador.getId())) {
             throw new IllegalStateException("Ya existe un jugador con id: " + jugador.getId());
         }

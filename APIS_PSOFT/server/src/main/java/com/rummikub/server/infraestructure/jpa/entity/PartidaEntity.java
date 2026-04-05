@@ -42,6 +42,15 @@ public class PartidaEntity {
     @Column(name = "TURNO_INICIO")
     private LocalDateTime turnoInicio;
 
+    @Column(name = "ESTADO", length = 20)
+    private String estado;
+
+    @Column(name = "GANADOR_ID")
+    private Integer ganadorId;
+
+    @Column(name = "PUNTUACION_FINAL", length = 2000)
+    private String puntuacionFinal;
+
     @Column(name = "CORRIENDO", nullable = false)
     private boolean corriendo;
 
@@ -53,6 +62,9 @@ public class PartidaEntity {
         this.bolsa = "";
         this.conjuntoMesa = "";
         this.turnoInicio = null;
+        this.estado = "WAITING";
+        this.ganadorId = null;
+        this.puntuacionFinal = "";
         this.corriendo = false;
     }
 }

@@ -2,7 +2,10 @@ package com.rummikub.server.api.controller;
 
 import com.rummikub.server.api.dto.PartidaDTO;
 import com.rummikub.server.api.dto.partida.CreatePartidaRequest;
+import com.rummikub.server.api.dto.partida.PlayTurnRequest;
+import com.rummikub.server.api.dto.partida.TurnActionRequest;
 import com.rummikub.server.api.dto.partida.UpdatePartidaRequest;
+import com.rummikub.server.application.services.AuthService;
 import com.rummikub.server.application.services.PartidaService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,9 +24,11 @@ import java.util.List;
 public class PartidaController {
 
     private final PartidaService partidaService;
+    private final AuthService authService;
 
-    public PartidaController(PartidaService partidaService) {
+    public PartidaController(PartidaService partidaService, AuthService authService) {
         this.partidaService = partidaService;
+        this.authService = authService;
     }
 
     @GetMapping
@@ -63,9 +69,45 @@ public class PartidaController {
         return partidaService.update(id, dto);
     }
 
-    @GetMapping("/{id}/siguiente-turno")
-    public PartidaDTO siguienteTurno(@PathVariable Integer id) {
-        return partidaService.siguienteTurno(id);
+    @GetMapping("/{id}/turno-actual")
+    public PartidaDTO turnoActual(@PathVariable Integer id) {
+        return partidaService.getById(id);
+    }
+
+    @PostMapping("/{id}/siguiente-turno")
+    public PartidaDTO siguienteTurno(
+            @PathVariable Integer id,
+            @Valid @RequestBody TurnActionRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
+        return partidaService.siguienteTurno(id, request.getIdJugador());
+    }
+
+    @PostMapping("/{id}/pasar")
+    public PartidaDTO pasar(
+            @PathVariable Integer id,
+            @Valid @RequestBody TurnActionRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
+        return partidaService.pasarTurno(id, request.getIdJugador());
+    }
+
+    @PostMapping("/{id}/robar")
+    public PartidaDTO robar(
+            @PathVariable Integer id,
+            @Valid @RequestBody TurnActionRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
+        return partidaService.robarFicha(id, request.getIdJugador());
+    }
+
+    @PostMapping("/{id}/jugar")
+    public PartidaDTO jugar(
+            @PathVariable Integer id,
+            @Valid @RequestBody PlayTurnRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
+        return partidaService.jugarGrupos(id, request.getIdJugador(), request.getGrupos());
     }
 
     @PostMapping("/{id}/iniciar")

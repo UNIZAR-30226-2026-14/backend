@@ -23,5 +23,8 @@ public class PartidaDTO {
     private String bolsa;
     private String conjuntoMesa;
     private LocalDateTime turnoInicio;
+    private String estado;
+    private Integer ganadorId;
+    private String puntuacionFinal;
     private boolean corriendo;
 }
