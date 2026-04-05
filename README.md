@@ -51,9 +51,9 @@ Luego pulsa `Test Connection` y `Finish`.
 
 ## 4. Flujo recomendado frontend
 
-1. Crear jugadores (`POST /api/jugadores`).
+1. Crear jugadores (`POST /api/jugadores`) (No hace falta poner id).
 2. Hacer login (`POST /api/auth/login`) y guardar `token`.
-3. Crear partida (`POST /api/partidas`) con `corriendo=false`.
+3. Crear partida (`POST /api/partidas`) con `corriendo=false` (No hace falta poner id).
 4. Crear participaciones (`POST /api/participaciones`).
 5. Iniciar partida (`POST /api/partidas/{id}/iniciar`).
 6. Loop de turno con endpoints de juego (`jugar`, `robar`, `pasar`).
