@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "{{jugador2Nombre}}",
+      "contrasena": "{{passwordComun}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      var data = pm.response.json();
+      pm.collectionVariables.set('tokenJugador2', data.token);
+    language: text/javascript
+order: 2000

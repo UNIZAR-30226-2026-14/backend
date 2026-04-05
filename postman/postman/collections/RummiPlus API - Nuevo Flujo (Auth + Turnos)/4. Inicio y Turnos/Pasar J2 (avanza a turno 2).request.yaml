@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/pasar"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{tokenJugador2}}
+body:
+  type: text
+  content: |-
+    {
+      "idJugador": {{jugador2Id}}
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Turno pasa a 2', function () {
+        var data = pm.response.json();
+        pm.expect(data.turno).to.eql(2);
+      });
+    language: text/javascript
+order: 4000

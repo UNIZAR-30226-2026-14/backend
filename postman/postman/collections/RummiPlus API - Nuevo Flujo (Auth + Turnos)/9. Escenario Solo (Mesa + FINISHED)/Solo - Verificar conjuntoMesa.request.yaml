@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaSoloId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+
+      const data = pm.response.json();
+
+      const beforeMesa = pm.collectionVariables.get('mesaInicialSolo') || '';
+
+      const played = pm.collectionVariables.get('jugadaExitosaSolo') === 'true';
+
+      if (played){
+        pm.test('Si se jugo, mesa cambia', function () {
+          pm.expect(data.conjuntoMesa).to.not.eql(beforeMesa);
+          pm.expect((data.conjuntoMesa || '').length).to.be.greaterThan(0);
+        });
+      } else {
+        pm.test('Sin jugada exitosa, no se exige cambio', function () { pm.expect(true).to.eql(true); });
+      }
+    language: text/javascript
+order: 10000

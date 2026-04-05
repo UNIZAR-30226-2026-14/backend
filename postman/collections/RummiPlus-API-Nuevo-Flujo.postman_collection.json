@@ -1,0 +1,1471 @@
+﻿{
+    "info":  {
+                 "name":  "RummiPlus API - Nuevo Flujo (Auth + Turnos)",
+                 "_postman_id":  "9d3f527f-73bf-4f2c-b7d9-8f1e45a1480a",
+                 "description":  "Coleccion nueva para validar el flujo actualizado: auth, inicio de partida, participaciones, turnos y cierre de sesion.",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "variable":  [
+                     {
+                         "key":  "baseUrl",
+                         "value":  "http://localhost:8080"
+                     },
+                     {
+                         "key":  "partidaId",
+                         "value":  "7001"
+                     },
+                     {
+                         "key":  "jugador1Id",
+                         "value":  "201"
+                     },
+                     {
+                         "key":  "jugador2Id",
+                         "value":  "202"
+                     },
+                     {
+                         "key":  "jugador3Id",
+                         "value":  "203"
+                     },
+                     {
+                         "key":  "jugador4Id",
+                         "value":  "204"
+                     },
+                     {
+                         "key":  "jugador1Nombre",
+                         "value":  "FrontUno"
+                     },
+                     {
+                         "key":  "jugador2Nombre",
+                         "value":  "FrontDos"
+                     },
+                     {
+                         "key":  "jugador3Nombre",
+                         "value":  "FrontTres"
+                     },
+                     {
+                         "key":  "jugador4Nombre",
+                         "value":  "FrontCuatro"
+                     },
+                     {
+                         "key":  "passwordComun",
+                         "value":  "secreto123"
+                     },
+                     {
+                         "key":  "tokenJugador1",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "tokenJugador2",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "tokenJugador3",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "tokenJugador4",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "jugadaFinPartida",
+                         "value":  "{\n  \"idJugador\": {{jugador1Id}},\n  \"grupos\": [[\"R1\", \"R2\", \"R3\"]]\n}"
+                     },
+                     {
+                         "key":  "jugadorSoloId",
+                         "value":  "301"
+                     },
+                     {
+                         "key":  "jugadorSoloNombre",
+                         "value":  "SoloTester"
+                     },
+                     {
+                         "key":  "partidaSoloId",
+                         "value":  "8001"
+                     },
+                     {
+                         "key":  "tokenSolo",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "playPayloadSolo",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "grupoEncontradoSolo",
+                         "value":  "false"
+                     },
+                     {
+                         "key":  "jugadaExitosaSolo",
+                         "value":  "false"
+                     },
+                     {
+                         "key":  "mesaInicialSolo",
+                         "value":  ""
+                     }
+                 ],
+    "item":  [
+                 {
+                     "name":  "0. Limpieza Base",
+                     "item":  [
+                                  {
+                                      "name":  "Wipe total BD",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/admin/wipe"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 204 o 200\u0027, function () {",
+                                                                                    "    pm.expect([200, 204]).to.include(pm.response.code);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "1. Jugadores",
+                     "item":  [
+                                  {
+                                      "name":  "Crear Jugador 1",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"id\": {{jugador1Id}},\n  \"nombre\": \"{{jugador1Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/jugadores"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Crear Jugador 2",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"id\": {{jugador2Id}},\n  \"nombre\": \"{{jugador2Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/jugadores"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Crear Jugador 3",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"id\": {{jugador3Id}},\n  \"nombre\": \"{{jugador3Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/jugadores"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Crear Jugador 4",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"id\": {{jugador4Id}},\n  \"nombre\": \"{{jugador4Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/jugadores"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Listar Jugadores",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/jugadores"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Hay al menos 4 jugadores\u0027, function () {",
+                                                                                    "  var data = pm.response.json();",
+                                                                                    "  pm.expect(data.length).to.be.at.least(4);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "2. Auth",
+                     "item":  [
+                                  {
+                                      "name":  "Login Jugador 1",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugador1Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/auth/login"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set(\u0027tokenJugador1\u0027, data.token);",
+                                                                                    "pm.test(\u0027Token recibido\u0027, function () { pm.expect(data.token).to.be.a(\u0027string\u0027).and.not.empty; });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Login Jugador 2",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugador2Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/auth/login"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set(\u0027tokenJugador2\u0027, data.token);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Login Jugador 3",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugador3Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/auth/login"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set(\u0027tokenJugador3\u0027, data.token);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Login Jugador 4",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugador4Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/auth/login"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set(\u0027tokenJugador4\u0027, data.token);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Auth Me Jugador 1",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador1}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/auth/me"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Devuelve id esperado\u0027, function () {",
+                                                                                    "  pm.expect(data.id).to.eql(Number(pm.collectionVariables.get(\u0027jugador1Id\u0027)));",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "3. Partida y Participaciones",
+                     "item":  [
+                                  {
+                                      "name":  "Crear Partida (WAITING)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idPartida\": {{partidaId}},\n  \"turno\": 0,\n  \"fecha\": \"2026-04-05\",\n  \"bolsa\": \"\",\n  \"conjuntoMesa\": \"\",\n  \"mercado\": \"\",\n  \"corriendo\": false\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Crear Participacion J1",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador1Id}},\n  \"idPartida\": {{partidaId}},\n  \"fichasActuales\": 0,\n  \"habilidadesActuales\": \"\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/participaciones"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Crear Participacion J2",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador2Id}},\n  \"idPartida\": {{partidaId}},\n  \"fichasActuales\": 0,\n  \"habilidadesActuales\": \"\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/participaciones"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Crear Participacion J3",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador3Id}},\n  \"idPartida\": {{partidaId}},\n  \"fichasActuales\": 0,\n  \"habilidadesActuales\": \"\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/participaciones"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Crear Participacion J4",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador4Id}},\n  \"idPartida\": {{partidaId}},\n  \"fichasActuales\": 0,\n  \"habilidadesActuales\": \"\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/participaciones"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Listar Participaciones por Partida",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/participaciones?partidaId={{partidaId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Hay 4 participaciones\u0027, function () { pm.expect(data.length).to.eql(4); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Get Participacion Directa J1-Partida",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/participaciones/{{jugador1Id}}/{{partidaId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027IDs correctos\u0027, function () {",
+                                                                                    "  pm.expect(data.idJugador).to.eql(Number(pm.collectionVariables.get(\u0027jugador1Id\u0027)));",
+                                                                                    "  pm.expect(data.idPartida).to.eql(Number(pm.collectionVariables.get(\u0027partidaId\u0027)));",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "4. Inicio y Turnos",
+                     "item":  [
+                                  {
+                                      "name":  "Iniciar Partida",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/iniciar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Partida RUNNING\u0027, function () {",
+                                                                                    "  pm.expect(data.corriendo).to.eql(true);",
+                                                                                    "  pm.expect(data.estado).to.eql(\u0027RUNNING\u0027);",
+                                                                                    "});",
+                                                                                    "pm.test(\u0027Bolsa y turnoInicio informados\u0027, function () {",
+                                                                                    "  pm.expect(data.bolsa).to.be.a(\u0027string\u0027);",
+                                                                                    "  pm.expect(data.turnoInicio).to.be.a(\u0027string\u0027);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Turno Actual",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/turno-actual"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Turno inicial 0\u0027, function () {",
+                                                                                    "  var data = pm.response.json();",
+                                                                                    "  pm.expect(data.turno).to.eql(0);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Robar J1 (avanza a turno 1)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador1}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador1Id}}\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/robar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Turno pasa a 1\u0027, function () {",
+                                                                                    "  var data = pm.response.json();",
+                                                                                    "  pm.expect(data.turno).to.eql(1);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Pasar J2 (avanza a turno 2)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador2}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador2Id}}\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/pasar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Turno pasa a 2\u0027, function () {",
+                                                                                    "  var data = pm.response.json();",
+                                                                                    "  pm.expect(data.turno).to.eql(2);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Siguiente Turno J3 (avanza a 3)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador3}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador3Id}}\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/siguiente-turno"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Turno pasa a 3\u0027, function () {",
+                                                                                    "  var data = pm.response.json();",
+                                                                                    "  pm.expect(data.turno).to.eql(3);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Pasar J4 (vuelve a turno 0)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador4}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador4Id}}\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/pasar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Turno vuelve a 0\u0027, function () {",
+                                                                                    "  var data = pm.response.json();",
+                                                                                    "  pm.expect(data.turno).to.eql(0);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "5. Cierre de sesion",
+                     "item":  [
+                                  {
+                                      "name":  "Logout Jugador 1",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador1}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/auth/logout"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 204 o 200\u0027, function () {",
+                                                                                    "  pm.expect([200, 204]).to.include(pm.response.code);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Me tras logout (debe fallar 401)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador1}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/auth/me"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 401\u0027, function () { pm.response.to.have.status(401); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "6. Ronda Completa (4 robos)",
+                     "item":  [
+                                  {
+                                      "name":  "Estado previo de turno",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/turno-actual"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Estado RUNNING antes de ronda\u0027, function () {",
+                                                                                    "  pm.expect(data.estado).to.eql(\u0027RUNNING\u0027);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Robo J1",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador1}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador1Id}}\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/robar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Turno esperado: 1\u0027, function () { pm.expect(data.turno).to.eql(1); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Robo J2",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador2}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador2Id}}\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/robar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Turno esperado: 2\u0027, function () { pm.expect(data.turno).to.eql(2); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Robo J3",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador3}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador3Id}}\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/robar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Turno esperado: 3\u0027, function () { pm.expect(data.turno).to.eql(3); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Robo J4 (cierra ronda y vuelve a 0)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador4}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugador4Id}}\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/robar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Turno esperado: 0 tras ronda completa\u0027, function () { pm.expect(data.turno).to.eql(0); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "7. Amistades",
+                     "item":  [
+                                  {
+                                      "name":  "Crear amistad J1 -\u003e J2",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"jugador1Id\": {{jugador1Id}},\n  \"jugador2Id\": {{jugador2Id}},\n  \"estado\": \"PENDIENTE\",\n  \"fecha\": \"2026-04-05\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/amigos"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Estado inicial PENDIENTE\u0027, function () {",
+                                                                                    "  pm.expect(data.estado).to.eql(\u0027PENDIENTE\u0027);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Get amistad por ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/amigos/{{jugador1Id}}/{{jugador2Id}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Pareja correcta\u0027, function () {",
+                                                                                    "  pm.expect(data.jugador1).to.eql(Number(pm.collectionVariables.get(\u0027jugador1Id\u0027)));",
+                                                                                    "  pm.expect(data.jugador2).to.eql(Number(pm.collectionVariables.get(\u0027jugador2Id\u0027)));",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Get amistades por jugador1",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/amigos?jugadorId={{jugador1Id}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Devuelve al menos una amistad\u0027, function () {",
+                                                                                    "  pm.expect(data.length).to.be.at.least(1);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Actualizar estado amistad a ACEPTADO",
+                                      "request":  {
+                                                      "method":  "PATCH",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"estado\": \"ACEPTADO\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/amigos/{{jugador1Id}}/{{jugador2Id}}/estado"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Estado actualizado\u0027, function () { pm.expect(data.estado).to.eql(\u0027ACEPTADO\u0027); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Revisar amistad actualizada",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/amigos/{{jugador1Id}}/{{jugador2Id}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Sigue en ACEPTADO\u0027, function () { pm.expect(data.estado).to.eql(\u0027ACEPTADO\u0027); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "8. Estado Acabar Partida",
+                     "item":  [
+                                  {
+                                      "name":  "Estado de partida actual",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test(\u0027Estado valido\u0027, function () {",
+                                                                                    "  pm.expect([\u0027WAITING\u0027,\u0027RUNNING\u0027,\u0027FINISHED\u0027]).to.include(data.estado);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Intento de jugada final (manual/condicional)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador1}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{{jugadaFinPartida}}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/jugar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Respuesta esperada para demo\u0027, function () {",
+                                                                                    "  pm.expect([200,400,401,409]).to.include(pm.response.code);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Validar estado FINISHED (si ya termino)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "if (data.estado === \u0027FINISHED\u0027) {",
+                                                                                    "  pm.test(\u0027Si FINISHED, incluye ganador y puntuacion\u0027, function () {",
+                                                                                    "    pm.expect(data.ganadorId).to.not.eql(null);",
+                                                                                    "    pm.expect(data.puntuacionFinal).to.be.a(\u0027string\u0027);",
+                                                                                    "  });",
+                                                                                    "} else {",
+                                                                                    "  pm.test(\u0027Si no esta FINISHED, sigue en RUNNING/WAITING\u0027, function () {",
+                                                                                    "    pm.expect([\u0027RUNNING\u0027,\u0027WAITING\u0027]).to.include(data.estado);",
+                                                                                    "  });",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 null,
+                 {
+                     "name":  "9. Escenario Solo (Mesa + FINISHED)",
+                     "item":  [
+                                  {
+                                      "name":  "Solo - Wipe BD",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/admin/wipe"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Solo - Crear Jugador",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"id\": {{jugadorSoloId}},\n  \"nombre\": \"{{jugadorSoloNombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/jugadores"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Solo - Login",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugadorSoloNombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/auth/login"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set(\u0027tokenSolo\u0027, data.token);",
+                                                                                    "pm.collectionVariables.set(\u0027jugadaExitosaSolo\u0027, \u0027false\u0027);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Solo - Crear Partida",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idPartida\": {{partidaSoloId}},\n  \"turno\": 0,\n  \"fecha\": \"2026-04-05\",\n  \"bolsa\": \"\",\n  \"conjuntoMesa\": \"\",\n  \"mercado\": \"\",\n  \"corriendo\": false\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Solo - Crear Participacion",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"idJugador\": {{jugadorSoloId}},\n  \"idPartida\": {{partidaSoloId}},\n  \"fichasActuales\": 0,\n  \"habilidadesActuales\": \"\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/participaciones"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Solo - Iniciar Partida",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaSoloId}}/iniciar"
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Solo - Guardar mesa inicial",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaSoloId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set(\u0027mesaInicialSolo\u0027, data.conjuntoMesa || \u0027\u0027);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Solo - Detectar grupo jugable",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/participaciones/{{jugadorSoloId}}/{{partidaSoloId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "const p = pm.response.json();",
+                                                                                    "const hand = (p.manoActual || \u0027\u0027).split(\u0027,\u0027).map(t =\u003e t.trim()).filter(Boolean);",
+                                                                                    "const jugadorId = Number(pm.collectionVariables.get(\u0027jugadorSoloId\u0027));",
+                                                                                    "function isTile(t){ return /^[RBOK](1[0-3]|[1-9])$/.test(t); }",
+                                                                                    "let group = null;",
+                                                                                    "const byValue = {};",
+                                                                                    "for (const t of hand){",
+                                                                                    "  if (!isTile(t)) continue;",
+                                                                                    "  const c = t[0]; const v = t.slice(1);",
+                                                                                    "  if (!byValue[v]) byValue[v] = new Set();",
+                                                                                    "  byValue[v].add(c);",
+                                                                                    "}",
+                                                                                    "for (const v of Object.keys(byValue)){",
+                                                                                    "  const colors = Array.from(byValue[v]);",
+                                                                                    "  if (colors.length \u003e= 3){ group = colors.slice(0,3).map(c =\u003e c + v); break; }",
+                                                                                    "}",
+                                                                                    "if (!group){",
+                                                                                    "  const byColor = {R:[],B:[],O:[],K:[]};",
+                                                                                    "  for (const t of hand){ if(isTile(t)) byColor[t[0]].push(Number(t.slice(1))); }",
+                                                                                    "  for (const c of Object.keys(byColor)){",
+                                                                                    "    const vals = Array.from(new Set(byColor[c])).sort((a,b)=\u003ea-b);",
+                                                                                    "    let run = [];",
+                                                                                    "    for (const val of vals){",
+                                                                                    "      if (run.length===0 || val===run[run.length-1]+1) run.push(val); else run=[val];",
+                                                                                    "      if (run.length\u003e=3){ group = run.slice(0,3).map(v=\u003e c + v); break; }",
+                                                                                    "    }",
+                                                                                    "    if (group) break;",
+                                                                                    "  }",
+                                                                                    "}",
+                                                                                    "if (group){",
+                                                                                    "  pm.collectionVariables.set(\u0027grupoEncontradoSolo\u0027,\u0027true\u0027);",
+                                                                                    "  pm.collectionVariables.set(\u0027playPayloadSolo\u0027, JSON.stringify({ idJugador: jugadorId, grupos: [group] }));",
+                                                                                    "} else {",
+                                                                                    "  pm.collectionVariables.set(\u0027grupoEncontradoSolo\u0027,\u0027false\u0027);",
+                                                                                    "  const fb = [\u0027R1\u0027,\u0027R2\u0027,\u0027R3\u0027];",
+                                                                                    "  pm.collectionVariables.set(\u0027playPayloadSolo\u0027, JSON.stringify({ idJugador: jugadorId, grupos: [fb] }));",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Solo - Intentar jugar (mesa)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenSolo}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{{playPayloadSolo}}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaSoloId}}/jugar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "if (pm.response.code === 200) pm.collectionVariables.set(\u0027jugadaExitosaSolo\u0027,\u0027true\u0027);",
+                                                                                    "pm.test(\u0027Respuesta esperada (200/400/409)\u0027, function () {",
+                                                                                    "  pm.expect([200,400,409]).to.include(pm.response.code);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Solo - Verificar conjuntoMesa",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaSoloId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "const data = pm.response.json();",
+                                                                                    "const beforeMesa = pm.collectionVariables.get(\u0027mesaInicialSolo\u0027) || \u0027\u0027;",
+                                                                                    "const played = pm.collectionVariables.get(\u0027jugadaExitosaSolo\u0027) === \u0027true\u0027;",
+                                                                                    "if (played){",
+                                                                                    "  pm.test(\u0027Si se jugo, mesa cambia\u0027, function () {",
+                                                                                    "    pm.expect(data.conjuntoMesa).to.not.eql(beforeMesa);",
+                                                                                    "    pm.expect((data.conjuntoMesa || \u0027\u0027).length).to.be.greaterThan(0);",
+                                                                                    "  });",
+                                                                                    "} else {",
+                                                                                    "  pm.test(\u0027Sin jugada exitosa, no se exige cambio\u0027, function () { pm.expect(true).to.eql(true); });",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Solo - Estado finalizar",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaSoloId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "const data = pm.response.json();",
+                                                                                    "pm.test(\u0027Estado valido\u0027, function () {",
+                                                                                    "  pm.expect([\u0027WAITING\u0027,\u0027RUNNING\u0027,\u0027FINISHED\u0027]).to.include(data.estado);",
+                                                                                    "});",
+                                                                                    "if (data.estado === \u0027FINISHED\u0027){",
+                                                                                    "  pm.test(\u0027FINISHED trae ganador/puntuacion\u0027, function () {",
+                                                                                    "    pm.expect(data.ganadorId).to.eql(Number(pm.collectionVariables.get(\u0027jugadorSoloId\u0027)));",
+                                                                                    "    pm.expect(data.puntuacionFinal).to.be.a(\u0027string\u0027).and.not.empty;",
+                                                                                    "  });",
+                                                                                    "} else {",
+                                                                                    "  pm.test(\u0027Si no termina aun, sigue RUNNING\u0027, function () {",
+                                                                                    "    pm.expect(data.estado).to.eql(\u0027RUNNING\u0027);",
+                                                                                    "  });",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 }
+             ]
+}

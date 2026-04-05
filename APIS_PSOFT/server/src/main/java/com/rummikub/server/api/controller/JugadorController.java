@@ -13,11 +13,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/jugadores")
+@CrossOrigin(origins = "*")
 public class JugadorController {
 
     private final JugadorService jugadorService;
@@ -39,7 +41,6 @@ public class JugadorController {
     @PostMapping
     public JugadorDTO create(@Valid @RequestBody CreateJugadorRequest request) {
         JugadorEntity jugador = new JugadorEntity();
-        jugador.setId(request.getId());
         jugador.setNombre(request.getNombre());
         jugador.setContrasena(request.getContrasena());
 

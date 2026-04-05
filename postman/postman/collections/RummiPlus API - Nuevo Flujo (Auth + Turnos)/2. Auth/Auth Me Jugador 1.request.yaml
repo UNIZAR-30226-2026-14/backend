@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/me"
+method: GET
+headers:
+  Authorization: Bearer {{tokenJugador1}}
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+
+      var data = pm.response.json();
+
+      pm.test('Devuelve id esperado', function () {
+        pm.expect(data.id).to.eql(Number(pm.collectionVariables.get('jugador1Id')));
+      });
+    language: text/javascript
+order: 5000

@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/turno-actual"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+      var data = pm.response.json();
+      pm.test('Estado RUNNING antes de ronda', function () {
+        pm.expect(data.estado).to.eql('RUNNING');
+      });
+    language: text/javascript
+order: 1000

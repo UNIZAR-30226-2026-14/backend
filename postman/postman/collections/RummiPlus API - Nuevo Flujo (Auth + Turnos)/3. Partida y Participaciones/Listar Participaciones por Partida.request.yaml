@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/participaciones?partidaId={{partidaId}}"
+method: GET
+queryParams:
+  partidaId: "{{partidaId}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+
+      var data = pm.response.json();
+
+      pm.test('Hay 4 participaciones', function () {
+      pm.expect(data.length).to.eql(4); });
+    language: text/javascript
+order: 6000

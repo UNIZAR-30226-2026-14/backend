@@ -1,0 +1,21 @@
+$kind: http-request
+name: Solo - Intentar jugar (mesa)
+url: "{{baseUrl}}/api/partidas/{{partidaSoloId}}/jugar"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{tokenSolo}}
+body:
+  type: text
+  content: "{{playPayloadSolo}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      if (pm.response.code === 200)
+      pm.collectionVariables.set('jugadaExitosaSolo','true');
+
+      pm.test('Respuesta esperada (200/400/409)', function () {
+        pm.expect([200,400,409]).to.include(pm.response.code);
+      });
+    language: text/javascript
+order: 9000

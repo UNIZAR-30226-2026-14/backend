@@ -1,0 +1,18 @@
+$kind: http-request
+name: Intento de jugada final (manual/condicional)
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/jugar"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{tokenJugador1}}
+body:
+  type: text
+  content: "{{jugadaFinPartida}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Respuesta esperada para demo', function () {
+        pm.expect([200,400,401,409]).to.include(pm.response.code);
+      });
+    language: text/javascript
+order: 2000

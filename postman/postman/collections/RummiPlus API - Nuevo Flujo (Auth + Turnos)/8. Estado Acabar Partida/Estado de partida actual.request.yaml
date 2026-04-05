@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+      var data = pm.response.json();
+      pm.test('Estado valido', function () {
+        pm.expect(['WAITING','RUNNING','FINISHED']).to.include(data.estado);
+      });
+    language: text/javascript
+order: 1000

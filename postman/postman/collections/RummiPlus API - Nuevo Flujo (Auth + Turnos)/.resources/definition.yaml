@@ -1,0 +1,32 @@
+$kind: collection
+description: "Coleccion nueva para validar el flujo actualizado: auth, inicio de
+  partida, participaciones, turnos y cierre de sesion."
+variables:
+  baseUrl: http://localhost:8080
+  partidaId: "7001"
+  jugador1Id: "201"
+  jugador2Id: "202"
+  jugador3Id: "203"
+  jugador4Id: "204"
+  jugador1Nombre: FrontUno
+  jugador2Nombre: FrontDos
+  jugador3Nombre: FrontTres
+  jugador4Nombre: FrontCuatro
+  passwordComun: secreto123
+  tokenJugador1: ""
+  tokenJugador2: ""
+  tokenJugador3: ""
+  tokenJugador4: ""
+  jugadaFinPartida: |-
+    {
+      "idJugador": {{jugador1Id}},
+      "grupos": [["R1", "R2", "R3"]]
+    }
+  jugadorSoloId: "301"
+  jugadorSoloNombre: SoloTester
+  partidaSoloId: "8001"
+  tokenSolo: ""
+  playPayloadSolo: ""
+  grupoEncontradoSolo: "false"
+  jugadaExitosaSolo: "false"
+  mesaInicialSolo: ""

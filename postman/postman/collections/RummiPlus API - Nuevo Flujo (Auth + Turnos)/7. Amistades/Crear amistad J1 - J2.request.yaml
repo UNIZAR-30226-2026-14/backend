@@ -1,0 +1,25 @@
+$kind: http-request
+name: Crear amistad J1 -> J2
+url: "{{baseUrl}}/api/amigos"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "jugador1Id": {{jugador1Id}},
+      "jugador2Id": {{jugador2Id}},
+      "estado": "PENDIENTE",
+      "fecha": "2026-04-05"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+      var data = pm.response.json();
+      pm.test('Estado inicial PENDIENTE', function () {
+        pm.expect(data.estado).to.eql('PENDIENTE');
+      });
+    language: text/javascript
+order: 1000

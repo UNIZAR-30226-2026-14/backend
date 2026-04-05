@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/iniciar"
+method: POST
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+      var data = pm.response.json();
+      pm.test('Partida RUNNING', function () {
+        pm.expect(data.corriendo).to.eql(true);
+        pm.expect(data.estado).to.eql('RUNNING');
+      });
+      pm.test('Bolsa y turnoInicio informados', function () {
+        pm.expect(data.bolsa).to.be.a('string');
+        pm.expect(data.turnoInicio).to.be.a('string');
+      });
+    language: text/javascript
+order: 1000

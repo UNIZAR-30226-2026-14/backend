@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "idPartida": {{partidaId}},
+      "turno": 0,
+      "fecha": "2026-04-05",
+      "bolsa": "",
+      "conjuntoMesa": "",
+      "mercado": "",
+      "corriendo": false
+    }
+order: 1000

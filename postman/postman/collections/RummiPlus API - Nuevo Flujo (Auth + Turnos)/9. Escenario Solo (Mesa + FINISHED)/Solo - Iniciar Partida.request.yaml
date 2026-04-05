@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaSoloId}}/iniciar"
+method: POST
+order: 6000

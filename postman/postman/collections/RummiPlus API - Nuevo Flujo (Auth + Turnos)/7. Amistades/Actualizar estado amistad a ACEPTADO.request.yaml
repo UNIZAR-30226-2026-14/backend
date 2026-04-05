@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/api/amigos/{{jugador1Id}}/{{jugador2Id}}/estado"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "estado": "ACEPTADO"
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+
+      var data = pm.response.json();
+
+      pm.test('Estado actualizado', function () {
+      pm.expect(data.estado).to.eql('ACEPTADO'); });
+    language: text/javascript
+order: 4000

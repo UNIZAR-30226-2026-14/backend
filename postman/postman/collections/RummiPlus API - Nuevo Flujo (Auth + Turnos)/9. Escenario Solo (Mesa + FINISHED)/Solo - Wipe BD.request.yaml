@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/admin/wipe"
+method: DELETE
+order: 1000

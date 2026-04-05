@@ -1,98 +1,76 @@
-﻿# RummiPlus Backend - Guia para Frontend
+# RummiPlus Backend - Guia para Frontend
 
-Guia rapida y actualizada para consumir la API desde frontend.
+## 1. Base URL
 
-## 1. Flujo para frontend
+- `http://localhost:8080`
 
-1. Levantar PostgreSQL.
-2. Levantar Spring Boot.
-3. Probar con Postman.
-4. Consumir endpoints desde frontend (`fetch`/axios).
+## 2. Arranque rapido (API + BD Docker)
 
-El frontend se conecta a `http://localhost:8080`.
+### 2.1 Levantar PostgreSQL en Docker
 
-## 2. Arranque rapido
-
-### 2.1 Base de datos (PostgreSQL)
-
-Desde `APIS_PSOFT`:
+Desde la carpeta `APIS_PSOFT`:
 
 ```powershell
 docker compose up -d
 ```
 
-Credenciales esperadas por la API:
+Comprobar que esta arriba:
 
-- Host: `localhost`
-- Puerto: `5432`
-- DB: `rummiplus`
-- Usuario: `admin`
-- Password: `admin123`
+```powershell
+docker ps --filter "name=rummiplus-postgres"
+```
 
-### 2.2 Backend (Spring Boot)
+### 2.2 Cargar `crear.sql` en la BD Docker
+
+Desde la raiz del repo (`backend`):
+
+```powershell
+Get-Content -Raw ".\crear.sql" | docker exec -i rummiplus-postgres psql -U admin -d rummiplus
+```
+
+### 2.3 Levantar API (Spring Boot)
 
 Desde `APIS_PSOFT/server`:
 
 ```powershell
-.\mvnw.cmd clean spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
-## 3. Coleccion Postman
+## 3. Conexion DBeaver (tu base local/docker)
 
-Importar:
+En nueva conexion PostgreSQL, usa:
 
-- `postman/collections/RummiPlus-API-Demo.postman_collection.json`
+1. Host: `127.0.0.1` (o `localhost`)
+2. Port: `5432`
+3. Database: `rummiplus`
+4. Username: `admin`
+5. Password: `admin123`
+6. SSL: desactivado (si te lo pide)
 
-Variable clave:
+Luego pulsa `Test Connection` y `Finish`.
 
-- `baseUrl = http://localhost:8080`
+## 4. Flujo recomendado frontend
 
-## 4. Cambios importantes de logica de juego
+1. Crear jugadores (`POST /api/jugadores`).
+2. Hacer login (`POST /api/auth/login`) y guardar `token`.
+3. Crear partida (`POST /api/partidas`) con `corriendo=false`.
+4. Crear participaciones (`POST /api/participaciones`).
+5. Iniciar partida (`POST /api/partidas/{id}/iniciar`).
+6. Loop de turno con endpoints de juego (`jugar`, `robar`, `pasar`).
 
-### 4.1 Inicio real de partida
+## 5. Auth (nuevo)
 
-Nuevo endpoint:
+- `POST /api/auth/login`
+  - Body: `{ "nombre": "...", "contrasena": "..." }`
+  - Devuelve: `token`, `expiraEn`, `jugador`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
 
-- `POST /api/partidas/{id}/iniciar`
+Para endpoints de turno/jugada:
 
-Al iniciar:
+- Header obligatorio: `Authorization: Bearer <token>`
 
-- Se crea bolsa aleatoria de Rummikub original (106 fichas).
-- Se reparten 14 fichas por jugador (guardadas en `participacion.manoActual`).
-- `participacion.fichasActuales` se actualiza a `14`.
-- `partida.bolsa` guarda solo fichas no jugadas (ni mesa ni manos).
-- `partida.conjuntoMesa` empieza vacio.
-
-### 4.2 Turnos y timeout
-
-Nuevo endpoint para frontend (fin de turno):
-
-- `GET /api/partidas/{id}/siguiente-turno`
-
-Reglas aplicadas:
-
-- 4 slots de turno maximo (`0..3`).
-- Si faltan jugadores, se saltan slots vacios.
-- Timeout de turno automatico: 60 segundos.
-
-### 4.3 Campos nuevos utiles para frontend
-
-En `Partida`:
-
-- `turnoInicio` (timestamp inicio del turno actual)
-
-En `Participacion`:
-
-- `manoActual` (CSV de fichas en mano)
-- `ordenTurno` (slot de turno)
-
-## 5. Endpoints principales
-
-### Jugadores
-
-- `GET /api/jugadores`
-- `POST /api/jugadores`
-- `PATCH /api/jugadores/{id}/perfil`
+## 6. Endpoints de juego
 
 ### Partidas
 
@@ -101,77 +79,87 @@ En `Participacion`:
 - `POST /api/partidas`
 - `PUT /api/partidas/{id}`
 - `POST /api/partidas/{id}/iniciar`
-- `GET /api/partidas/{id}/siguiente-turno`
+- `GET /api/partidas/{id}/turno-actual` (solo lectura)
+- `POST /api/partidas/{id}/siguiente-turno` (fin de turno)
+- `POST /api/partidas/{id}/pasar`
+- `POST /api/partidas/{id}/robar`
+- `POST /api/partidas/{id}/jugar`
 
 ### Participaciones
 
+- `GET /api/participaciones`
 - `GET /api/participaciones?partidaId={id}`
+- `GET /api/participaciones?jugadorId={id}`
+- `GET /api/participaciones/{idJugador}/{idPartida}` (nuevo, directo)
 - `POST /api/participaciones`
 - `PUT /api/participaciones/{idJugador}/{idPartida}`
 
-### Amigos
+### Otros
 
-- `GET /api/amigos?jugadorId={id}`
+- `GET /api/jugadores`
+- `POST /api/jugadores`
+- `PATCH /api/jugadores/{id}/perfil`
+- `GET /api/amigos`
 - `POST /api/amigos`
-- `PATCH /api/amigos/{jugador1Id}/{jugador2Id}/estado`
+- `PATCH /api/amigos/{jugadorId}/{amigoId}/estado`
+- `DELETE /api/admin/wipe` (unico DELETE)
 
-### Limpieza total de datos (solo demo/dev)
+## 7. Estado de partida (nuevo)
 
-- `DELETE /api/admin/wipe`
+Campos nuevos en `Partida`:
 
-Este es el unico endpoint `DELETE` disponible.
+- `estado`: `WAITING | RUNNING | FINISHED`
+- `ganadorId`
+- `puntuacionFinal` (json string con resumen)
+- `turnoInicio`
 
-## 6. Orden recomendado de pruebas (coleccion actual)
+Al iniciar (`/iniciar`):
 
-1. `1. Jugadores`
-2. `2. Partidas` (crear partida con `corriendo=false`)
-3. `3. Participaciones`
-4. `4. Amigos`
-5. `7. Logica Inicio y Turnos`
-6. `8. Limpieza Base (Demo)` (opcional al final)
-7. `5. Errores de Validacion (demo)`
+- Se genera bolsa completa aleatoria (106 fichas).
+- Se reparten 14 fichas por jugador (`manoActual`).
+- Se asigna `ordenTurno`.
+- Se deja `estado=RUNNING`.
 
-Nota importante:
+Fin de partida:
 
-- La carpeta `6. Flujo 4 Movimientos` es de demo manual y puede sobrescribir campos como `bolsa`.  
-Para validar la logica nueva, usa la carpeta `7. Logica Inicio y Turnos`.
+- Cuando un jugador se queda sin fichas al jugar.
+- Se guarda `ganadorId` y `puntuacionFinal`.
+- Se actualizan stats de jugador.
+- `estado=FINISHED`.
 
-## 7. Ejemplo rapido frontend
+## 8. Formato de acciones de turno
 
-```javascript
-const start = await fetch("http://localhost:8080/api/partidas/5001/iniciar", {
-  method: "POST"
-});
-const partida = await start.json();
-console.log(partida.turno, partida.turnoInicio);
+### Pasar / Siguiente turno / Robar
+
+Body:
+
+```json
+{
+  "idJugador": 1
+}
 ```
 
-Fin de turno:
+### Jugar
 
-```javascript
-await fetch("http://localhost:8080/api/partidas/5001/siguiente-turno");
+Body:
+
+```json
+{
+  "idJugador": 1,
+  "grupos": [
+    ["R3", "B3", "O3"],
+    ["K7", "K8", "K9"]
+  ]
+}
 ```
 
-## 8. Problemas comunes
+Reglas validadas:
 
-### 8.1 No conecta a PostgreSQL
+- Cada grupo tiene minimo 3 fichas.
+- Debe ser terna/cuarteto valido o escalera valida.
+- Las fichas deben estar en la mano del jugador.
 
-Verifica contenedor/servicio y credenciales (`admin/admin123`).
+## 9. Nota importante
 
-### 8.2 Error de puerto 8080 ocupado
-
-```powershell
-Get-NetTCPConnection -LocalPort 8080 | Select-Object OwningProcess,State
-Stop-Process -Id <PID> -Force
-```
-
-### 8.3 Bot IA (opcional)
-
-Solo si usais bot:
-
-- `GET /api/bot/health`
-- `POST /api/bot/move`
-
-Debe estar levantado el servicio IA en `http://127.0.0.1:8765`.
-
-
+- Se ha eliminado la API legacy `/api/games`.
+- Usad solo flujo `partidas + participaciones + auth`.

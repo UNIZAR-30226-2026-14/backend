@@ -5,6 +5,8 @@ import com.rummikub.server.api.dto.listaamigos.CreateListaDeAmigosRequest;
 import com.rummikub.server.api.dto.listaamigos.UpdateEstadoAmistadRequest;
 import com.rummikub.server.application.services.ListaDeAmigosService;
 import jakarta.validation.Valid;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/amigos")
+@CrossOrigin(origins = "*")
 public class ListaDeAmigosController {
 
     private final ListaDeAmigosService listaDeAmigosService;

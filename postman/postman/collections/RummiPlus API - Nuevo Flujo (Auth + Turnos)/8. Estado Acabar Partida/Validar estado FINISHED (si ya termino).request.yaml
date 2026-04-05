@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+      var data = pm.response.json();
+      if (data.estado === 'FINISHED') {
+        pm.test('Si FINISHED, incluye ganador y puntuacion', function () {
+          pm.expect(data.ganadorId).to.not.eql(null);
+          pm.expect(data.puntuacionFinal).to.be.a('string');
+        });
+      } else {
+        pm.test('Si no esta FINISHED, sigue en RUNNING/WAITING', function () {
+          pm.expect(['RUNNING','WAITING']).to.include(data.estado);
+        });
+      }
+    language: text/javascript
+order: 3000

@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "{{jugadorSoloNombre}}",
+      "contrasena": "{{passwordComun}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+      var data = pm.response.json();
+      pm.collectionVariables.set('tokenSolo', data.token);
+      pm.collectionVariables.set('jugadaExitosaSolo', 'false');
+    language: text/javascript
+order: 3000

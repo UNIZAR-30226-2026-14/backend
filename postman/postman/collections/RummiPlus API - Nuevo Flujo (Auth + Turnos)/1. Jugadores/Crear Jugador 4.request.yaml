@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/jugadores"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "id": {{jugador4Id}},
+      "nombre": "{{jugador4Nombre}}",
+      "contrasena": "{{passwordComun}}"
+    }
+order: 4000

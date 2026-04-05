@@ -5,6 +5,8 @@ import com.rummikub.server.api.dto.participacion.CreateParticipacionRequest;
 import com.rummikub.server.api.dto.participacion.UpdateParticipacionRequest;
 import com.rummikub.server.application.services.ParticipacionService;
 import jakarta.validation.Valid;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/participaciones")
+@CrossOrigin(origins = "*")
 public class ParticipacionController {
 
     private final ParticipacionService participacionService;

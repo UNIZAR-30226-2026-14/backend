@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/robar"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{tokenJugador2}}
+body:
+  type: text
+  content: |-
+    {
+      "idJugador": {{jugador2Id}}
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+
+      var data = pm.response.json();
+
+      pm.test('Turno esperado: 2', function () {
+      pm.expect(data.turno).to.eql(2); });
+    language: text/javascript
+order: 3000

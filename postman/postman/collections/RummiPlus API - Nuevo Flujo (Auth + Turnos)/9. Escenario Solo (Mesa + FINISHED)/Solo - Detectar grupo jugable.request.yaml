@@ -1,0 +1,57 @@
+$kind: http-request
+url: "{{baseUrl}}/api/participaciones/{{jugadorSoloId}}/{{partidaSoloId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+
+      const p = pm.response.json();
+
+      const hand = (p.manoActual || '').split(',').map(t =>
+      t.trim()).filter(Boolean);
+
+      const jugadorId = Number(pm.collectionVariables.get('jugadorSoloId'));
+
+      function isTile(t){ return /^[RBOK](1[0-3]|[1-9])$/.test(t); }
+
+      let group = null;
+
+      const byValue = {};
+
+      for (const t of hand){
+        if (!isTile(t)) continue;
+        const c = t[0]; const v = t.slice(1);
+        if (!byValue[v]) byValue[v] = new Set();
+        byValue[v].add(c);
+      }
+
+      for (const v of Object.keys(byValue)){
+        const colors = Array.from(byValue[v]);
+        if (colors.length >= 3){ group = colors.slice(0,3).map(c => c + v); break; }
+      }
+
+      if (!group){
+        const byColor = {R:[],B:[],O:[],K:[]};
+        for (const t of hand){ if(isTile(t)) byColor[t[0]].push(Number(t.slice(1))); }
+        for (const c of Object.keys(byColor)){
+          const vals = Array.from(new Set(byColor[c])).sort((a,b)=>a-b);
+          let run = [];
+          for (const val of vals){
+            if (run.length===0 || val===run[run.length-1]+1) run.push(val); else run=[val];
+            if (run.length>=3){ group = run.slice(0,3).map(v=> c + v); break; }
+          }
+          if (group) break;
+        }
+      }
+
+      if (group){
+        pm.collectionVariables.set('grupoEncontradoSolo','true');
+        pm.collectionVariables.set('playPayloadSolo', JSON.stringify({ idJugador: jugadorId, grupos: [group] }));
+      } else {
+        pm.collectionVariables.set('grupoEncontradoSolo','false');
+        const fb = ['R1','R2','R3'];
+        pm.collectionVariables.set('playPayloadSolo', JSON.stringify({ idJugador: jugadorId, grupos: [fb] }));
+      }
+    language: text/javascript
+order: 8000
