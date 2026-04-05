@@ -47,7 +47,6 @@ public class PartidaController {
     @PostMapping
     public PartidaDTO create(@Valid @RequestBody CreatePartidaRequest request) {
         PartidaDTO dto = PartidaDTO.builder()
-                .idPartida(request.getIdPartida())
                 .turno(request.getTurno())
                 .fecha(request.getFecha())
                 .bolsa(request.getBolsa())

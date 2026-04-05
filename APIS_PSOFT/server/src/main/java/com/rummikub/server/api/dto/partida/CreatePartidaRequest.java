@@ -7,9 +7,6 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public class CreatePartidaRequest {
-    @NotNull(message = "El id de partida es obligatorio")
-    private Integer idPartida;
-
     @Min(value = 0, message = "El turno no puede ser negativo")
     private int turno;
 
@@ -23,14 +20,6 @@ public class CreatePartidaRequest {
     private String conjuntoMesa;
 
     private boolean corriendo;
-
-    public Integer getIdPartida() {
-        return idPartida;
-    }
-
-    public void setIdPartida(Integer idPartida) {
-        this.idPartida = idPartida;
-    }
 
     public int getTurno() {
         return turno;

@@ -84,15 +84,7 @@ public class PartidaService {
 
     @Transactional
     public PartidaDTO create(PartidaDTO dto) {
-        if (dto == null || dto.getIdPartida() == null) {
-            throw new IllegalArgumentException("El id de la partida es obligatorio");
-        }
-        if (partidaRepository.existsById(dto.getIdPartida())) {
-            throw new IllegalStateException("Ya existe una partida con id: " + dto.getIdPartida());
-        }
-
         PartidaEntity partida = new PartidaEntity();
-        partida.setIdPartida(dto.getIdPartida());
         partida.setTurno(dto.getTurno());
         partida.setFecha(dto.getFecha() == null ? LocalDate.now() : dto.getFecha());
         partida.setBolsa(safe(dto.getBolsa()));
@@ -102,17 +94,19 @@ public class PartidaService {
         partida.setGanadorId(null);
         partida.setPuntuacionFinal("");
 
+        partida = partidaRepository.save(partida);
+
         if (dto.isCorriendo()) {
             partida.setCorriendo(true);
             partida.setEstado(ESTADO_RUNNING);
             initializeGameState(partida);
+            partida = partidaRepository.save(partida);
         } else {
             partida.setCorriendo(false);
             partida.setEstado(ESTADO_WAITING);
-            turnRuntimeByPartida.remove(partida.getIdPartida());
         }
 
-        return Mapper.toDTO(partidaRepository.save(partida));
+        return Mapper.toDTO(partida);
     }
 
     @Transactional

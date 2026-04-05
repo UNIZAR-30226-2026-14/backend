@@ -54,8 +54,7 @@ public class JugadorEntity {
     @Column(name = "PARTIDAS_FINALIZADAS", nullable = false)
     private int partidasFinalizadas;
 
-    public JugadorEntity(Integer id, String nombre, String contrasena) {
-        this.id = id;
+    public JugadorEntity(String nombre, String contrasena) {
         this.nombre = nombre;
         this.contrasena = contrasena;
         this.urlImgPerfil = "";

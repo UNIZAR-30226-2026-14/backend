@@ -31,9 +31,6 @@ public class JugadorService {
     }
 
     public JugadorDTO create(JugadorEntity jugador) {
-        if (jugador == null || jugador.getId() == null) {
-            throw new IllegalArgumentException("El id del jugador es obligatorio");
-        }
         if (jugador.getNombre() == null || jugador.getNombre().isBlank()) {
             throw new IllegalArgumentException("El nombre del jugador es obligatorio");
         }
@@ -42,9 +39,6 @@ public class JugadorService {
         }
         if (jugadorRepository.existsByNombreIgnoreCase(jugador.getNombre())) {
             throw new IllegalStateException("Ya existe un jugador con nombre: " + jugador.getNombre());
-        }
-        if (jugadorRepository.existsById(jugador.getId())) {
-            throw new IllegalStateException("Ya existe un jugador con id: " + jugador.getId());
         }
 
         if (jugador.getUrlImgPerfil() == null) {
