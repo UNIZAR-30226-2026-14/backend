@@ -26,5 +26,6 @@ public class PartidaDTO {
     private String estado;
     private Integer ganadorId;
     private String puntuacionFinal;
+    private String fichaRobada;
     private boolean corriendo;
 }

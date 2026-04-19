@@ -57,6 +57,8 @@ Luego pulsa `Test Connection` y `Finish`.
 4. Crear participaciones (`POST /api/participaciones`).
 5. Iniciar partida (`POST /api/partidas/{id}/iniciar`).
 6. Loop de turno con endpoints de juego (`jugar`, `robar`, `pasar`).
+7. Si faltan jugadores al iniciar, backend completa con bots hasta 4.
+8. Si alguien sale durante la partida (`POST /api/partidas/{id}/salir`), backend lo reemplaza por bot.
 
 ## 5. Auth (nuevo)
 
@@ -84,6 +86,8 @@ Para endpoints de turno/jugada:
 - `POST /api/partidas/{id}/pasar`
 - `POST /api/partidas/{id}/robar`
 - `POST /api/partidas/{id}/jugar`
+- `POST /api/partidas/{id}/jugar-avanzado`
+- `POST /api/partidas/{id}/salir`
 
 ### Participaciones
 
@@ -103,6 +107,9 @@ Para endpoints de turno/jugada:
 - `POST /api/amigos`
 - `PATCH /api/amigos/{jugadorId}/{amigoId}/estado`
 - `DELETE /api/admin/wipe` (unico DELETE)
+
+En jugador se distinguen ahora `skinFichas` y `skinTablero` (en lugar de un unico campo de cosmeticos).
+En amistades, las respuestas incluyen IDs, nombres y estado.
 
 ## 7. Estado de partida (nuevo)
 
@@ -153,11 +160,39 @@ Body:
 }
 ```
 
+`POST /api/partidas/{id}/robar` ahora devuelve además `fichaRobada` en la respuesta.
+
 Reglas validadas:
 
 - Cada grupo tiene minimo 3 fichas.
 - Debe ser terna/cuarteto valido o escalera valida.
 - Las fichas deben estar en la mano del jugador.
+
+### Jugar avanzado (extender/reorganizar tablero)
+
+Body (extend_meld):
+
+```json
+{
+  "idJugador": 1,
+  "moveType": "extend_meld",
+  "extendIndex": 0,
+  "extensionTiles": ["R10"]
+}
+```
+
+Body (replace_board):
+
+```json
+{
+  "idJugador": 1,
+  "moveType": "replace_board",
+  "newBoard": [
+    ["R3", "B3", "O3"],
+    ["K7", "K8", "K9"]
+  ]
+}
+```
 
 ## 9. Nota importante
 

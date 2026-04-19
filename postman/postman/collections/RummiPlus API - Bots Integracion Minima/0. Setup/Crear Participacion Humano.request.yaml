@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/participaciones"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "idJugador": {{human1Id}},
+      "idPartida": {{partidaId}},
+      "fichasActuales": 0,
+      "habilidadesActuales": ""
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('Participacion creada', function () {
+      pm.expect(pm.response.code).to.be.oneOf([200, 201]); });
+    language: text/javascript
+order: 5000

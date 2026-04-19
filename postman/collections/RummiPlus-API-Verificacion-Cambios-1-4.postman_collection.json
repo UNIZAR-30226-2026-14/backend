@@ -1,0 +1,222 @@
+{
+  "info": {
+    "name": "RummiPlus API - Verificacion Cambios 1-4",
+    "_postman_id": "8fd315ec-c8fc-46f2-878b-2f1f2c0f6ad0",
+    "description": "Valida: (1) skinFichas/skinTablero, (2) fichaRobada en robar, (3) amigos con nombre+estado, (4) jugar-avanzado replace_board.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('runId')) pm.collectionVariables.set('runId', String(Date.now()));",
+          "const d = new Date();",
+          "const yyyy = d.getFullYear();",
+          "const mm = String(d.getMonth()+1).padStart(2,'0');",
+          "const dd = String(d.getDate()).padStart(2,'0');",
+          "pm.collectionVariables.set('today', `${yyyy}-${mm}-${dd}`);"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "runId", "value": "" },
+    { "key": "today", "value": "" },
+    { "key": "jugadorAId", "value": "" },
+    { "key": "jugadorBId", "value": "" },
+    { "key": "tokenA", "value": "" },
+    { "key": "partidaId", "value": "" },
+    { "key": "bolsaActual", "value": "" },
+    { "key": "mercadoActual", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0) Setup",
+      "item": [
+        {
+          "name": "Wipe BD",
+          "request": {
+            "method": "DELETE",
+            "url": {"raw": "{{baseUrl}}/api/admin/wipe", "host": ["{{baseUrl}}"], "path": ["api","admin","wipe"]}
+          }
+        },
+        {
+          "name": "Crear Jugador A (skins)",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {"mode":"raw","raw":"{\n  \"nombre\": \"ana_{{runId}}\",\n  \"contrasena\": \"secreto123\",\n  \"skinFichas\": \"gold_classic\",\n  \"skinTablero\": \"wood_oak\"\n}"},
+            "url": {"raw":"{{baseUrl}}/api/jugadores","host":["{{baseUrl}}"],"path":["api","jugadores"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":[
+            "pm.test('Jugador A creado', ()=> pm.expect([200,201]).to.include(pm.response.code));",
+            "const b=pm.response.json(); pm.collectionVariables.set('jugadorAId', b.id);",
+            "pm.test('Trae skinFichas', ()=> pm.expect(b.skinFichas).to.eql('gold_classic'));",
+            "pm.test('Trae skinTablero', ()=> pm.expect(b.skinTablero).to.eql('wood_oak'));"
+          ]}}]
+        },
+        {
+          "name": "Crear Jugador B",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {"mode":"raw","raw":"{\n  \"nombre\": \"bruno_{{runId}}\",\n  \"contrasena\": \"secreto123\"\n}"},
+            "url": {"raw":"{{baseUrl}}/api/jugadores","host":["{{baseUrl}}"],"path":["api","jugadores"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":[
+            "const b=pm.response.json(); pm.collectionVariables.set('jugadorBId', b.id);"
+          ]}}]
+        },
+        {
+          "name": "Login Jugador A",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {"mode":"raw","raw":"{\n  \"nombre\": \"ana_{{runId}}\",\n  \"contrasena\": \"secreto123\"\n}"},
+            "url": {"raw":"{{baseUrl}}/api/auth/login","host":["{{baseUrl}}"],"path":["api","auth","login"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":[
+            "pm.test('Login A OK', ()=> pm.expect(pm.response.code).to.eql(200));",
+            "const b=pm.response.json(); pm.collectionVariables.set('tokenA', b.token);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "1) Verificar amigos con nombre+estado",
+      "item": [
+        {
+          "name": "Crear amistad A-B",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {"mode":"raw","raw":"{\n  \"jugador1Id\": {{jugadorAId}},\n  \"jugador2Id\": {{jugadorBId}},\n  \"estado\": \"PENDIENTE\"\n}"},
+            "url": {"raw":"{{baseUrl}}/api/amigos","host":["{{baseUrl}}"],"path":["api","amigos"]}
+          }
+        },
+        {
+          "name": "Listar amigos de A",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw":"{{baseUrl}}/api/amigos?jugadorId={{jugadorAId}}",
+              "host":["{{baseUrl}}"],
+              "path":["api","amigos"],
+              "query":[{"key":"jugadorId","value":"{{jugadorAId}}"}]
+            }
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":[
+            "pm.test('GET amigos OK', ()=> pm.expect(pm.response.code).to.eql(200));",
+            "const arr=pm.response.json();",
+            "pm.test('Hay al menos 1 amistad', ()=> pm.expect(arr.length).to.be.greaterThan(0));",
+            "const a=arr[0];",
+            "pm.test('Incluye estado', ()=> pm.expect(a.estado).to.exist);",
+            "pm.test('Incluye nombre amigo', ()=> pm.expect(a.amigoNombre || a.jugador2Nombre || a.jugador1Nombre).to.exist);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "2) Verificar robar devuelve fichaRobada",
+      "item": [
+        {
+          "name": "Crear partida WAITING",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {"mode":"raw","raw":"{\n  \"turno\": 0,\n  \"fecha\": \"{{today}}\",\n  \"mercado\": \"\",\n  \"bolsa\": \"\",\n  \"conjuntoMesa\": \"\",\n  \"corriendo\": false\n}"},
+            "url": {"raw":"{{baseUrl}}/api/partidas","host":["{{baseUrl}}"],"path":["api","partidas"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":[
+            "const b=pm.response.json(); pm.collectionVariables.set('partidaId', b.idPartida);"
+          ]}}]
+        },
+        {
+          "name": "Crear participacion A",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {"mode":"raw","raw":"{\n  \"idJugador\": {{jugadorAId}},\n  \"idPartida\": {{partidaId}},\n  \"fichasActuales\": 0,\n  \"habilidadesActuales\": \"\"\n}"},
+            "url": {"raw":"{{baseUrl}}/api/participaciones","host":["{{baseUrl}}"],"path":["api","participaciones"]}
+          }
+        },
+        {
+          "name": "Iniciar partida",
+          "request": {
+            "method": "POST",
+            "url": {"raw":"{{baseUrl}}/api/partidas/{{partidaId}}/iniciar","host":["{{baseUrl}}"],"path":["api","partidas","{{partidaId}}","iniciar"]}
+          }
+        },
+        {
+          "name": "Robar con A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key":"Content-Type","value":"application/json"},
+              {"key":"Authorization","value":"Bearer {{tokenA}}"}
+            ],
+            "body": {"mode":"raw","raw":"{\n  \"idJugador\": {{jugadorAId}}\n}"},
+            "url": {"raw":"{{baseUrl}}/api/partidas/{{partidaId}}/robar","host":["{{baseUrl}}"],"path":["api","partidas","{{partidaId}}","robar"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":[
+            "pm.test('Robar OK', ()=> pm.expect(pm.response.code).to.eql(200));",
+            "const b=pm.response.json();",
+            "pm.test('Devuelve fichaRobada', ()=> pm.expect(b.fichaRobada).to.be.a('string').and.not.empty);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "3) Verificar jugar-avanzado replace_board",
+      "item": [
+        {
+          "name": "GET partida actual (guardar bolsa/mercado)",
+          "request": {
+            "method": "GET",
+            "url": {"raw":"{{baseUrl}}/api/partidas/{{partidaId}}","host":["{{baseUrl}}"],"path":["api","partidas","{{partidaId}}"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":[
+            "const b=pm.response.json();",
+            "pm.collectionVariables.set('bolsaActual', b.bolsa || '');",
+            "pm.collectionVariables.set('mercadoActual', b.mercado || '');"
+          ]}}]
+        },
+        {
+          "name": "PUT partida: fijar tablero manual",
+          "request": {
+            "method": "PUT",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode":"raw",
+              "raw":"{\n  \"turno\": 0,\n  \"fecha\": \"{{today}}\",\n  \"bolsa\": \"{{bolsaActual}}\",\n  \"mercado\": \"{{mercadoActual}}\",\n  \"conjuntoMesa\": \"R1,B1,O1;R2,R3,R4\",\n  \"corriendo\": true\n}"
+            },
+            "url": {"raw":"{{baseUrl}}/api/partidas/{{partidaId}}","host":["{{baseUrl}}"],"path":["api","partidas","{{partidaId}}"]}
+          }
+        },
+        {
+          "name": "POST jugar-avanzado replace_board",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key":"Content-Type","value":"application/json"},
+              {"key":"Authorization","value":"Bearer {{tokenA}}"}
+            ],
+            "body": {
+              "mode":"raw",
+              "raw":"{\n  \"idJugador\": {{jugadorAId}},\n  \"moveType\": \"replace_board\",\n  \"newBoard\": [\n    [\"R1\", \"B1\", \"O1\"],\n    [\"R2\", \"R3\", \"R4\"]\n  ]\n}"
+            },
+            "url": {"raw":"{{baseUrl}}/api/partidas/{{partidaId}}/jugar-avanzado","host":["{{baseUrl}}"],"path":["api","partidas","{{partidaId}}","jugar-avanzado"]}
+          },
+          "event": [{"listen":"test","script":{"type":"text/javascript","exec":[
+            "pm.test('jugar-avanzado OK', ()=> pm.expect(pm.response.code).to.eql(200));",
+            "const b=pm.response.json();",
+            "pm.test('Tablero no vacio', ()=> pm.expect((b.conjuntoMesa || '').length).to.be.greaterThan(0));"
+          ]}}]
+        }
+      ]
+    }
+  ]
+}

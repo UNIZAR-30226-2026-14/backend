@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/jugar-avanzado"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{tokenA}}
+body:
+  type: text
+  content: |-
+    {
+      "idJugador": {{jugadorAId}},
+      "moveType": "replace_board",
+      "newBoard": [
+        ["R1", "B1", "O1"],
+        ["R2", "R3", "R4"]
+      ]
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('jugar-avanzado OK', ()=>
+      pm.expect(pm.response.code).to.eql(200));
+
+      const b=pm.response.json();
+
+      pm.test('Tablero no vacio', ()=> pm.expect((b.conjuntoMesa ||
+      '').length).to.be.greaterThan(0));
+    language: text/javascript
+order: 3000

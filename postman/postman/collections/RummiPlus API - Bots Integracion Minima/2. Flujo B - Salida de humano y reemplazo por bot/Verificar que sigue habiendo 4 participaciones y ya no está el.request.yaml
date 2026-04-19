@@ -1,0 +1,22 @@
+$kind: http-request
+name: Verificar que sigue habiendo 4 participaciones y ya no está el humano
+url: "{{baseUrl}}/api/participaciones?partidaId={{partidaId}}"
+method: GET
+queryParams:
+  partidaId: "{{partidaId}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      const arr = pm.response.json();
+
+      const humanId = Number(pm.collectionVariables.get('human1Id'));
+
+      pm.test('Sigue habiendo 4', function () {
+      pm.expect(arr.length).to.equal(4); });
+
+      pm.test('El humano ya no participa', function () {
+        const ids = arr.map(x => x.idJugador);
+        pm.expect(ids).to.not.include(humanId);
+      });
+    language: text/javascript
+order: 2000

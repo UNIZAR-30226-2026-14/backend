@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/jugadores"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "bruno_{{runId}}",
+      "contrasena": "secreto123"
+    }
+scripts:
+  - type: afterResponse
+    code: const b=pm.response.json(); pm.collectionVariables.set('jugadorBId', b.id);
+    language: text/javascript
+order: 3000

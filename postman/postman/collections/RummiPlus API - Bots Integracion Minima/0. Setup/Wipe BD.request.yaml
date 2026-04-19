@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/admin/wipe"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: pm.test('Wipe OK', function () { pm.expect([200,
+      204]).to.include(pm.response.code); });
+    language: text/javascript
+order: 1000

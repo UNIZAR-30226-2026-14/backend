@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "{{human1Name}}",
+      "contrasena": "{{human1Pass}}"
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Login OK', function () {
+      pm.expect(pm.response.code).to.equal(200); });
+
+      const body = pm.response.json();
+
+      pm.collectionVariables.set('human1Token', body.token);
+    language: text/javascript
+order: 3000

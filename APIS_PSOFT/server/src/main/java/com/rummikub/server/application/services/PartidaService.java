@@ -1,6 +1,9 @@
 package com.rummikub.server.application.services;
 
 import com.rummikub.server.api.dto.PartidaDTO;
+import com.rummikub.server.api.dto.bot.BotMoveDTO;
+import com.rummikub.server.api.dto.bot.BotMoveRequest;
+import com.rummikub.server.api.dto.bot.BotMoveResponse;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionId;
@@ -18,9 +21,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -34,6 +39,10 @@ public class PartidaService {
     private static final int MAX_TURN_SLOTS = 4;
     private static final int INITIAL_HAND_SIZE = 14;
     private static final int TURN_TIMEOUT_SECONDS = 60;
+    private static final String BOT_NAME_PREFIX = "BOT_";
+    private static final int BOT_LEVEL = 5;
+    private static final double BOT_RANDOMNESS = 0.20;
+    private static final int MAX_AUTOMATED_BOT_TURNS = 16;
 
     private static final String ESTADO_WAITING = "WAITING";
     private static final String ESTADO_RUNNING = "RUNNING";
@@ -44,16 +53,19 @@ public class PartidaService {
     private final PartidaRepository partidaRepository;
     private final ParticipacionRepository participacionRepository;
     private final JugadorRepository jugadorRepository;
+    private final BotIntegrationService botIntegrationService;
     private final Map<Integer, TurnRuntime> turnRuntimeByPartida = new ConcurrentHashMap<>();
     private final Object turnMutex = new Object();
 
     public PartidaService(
             PartidaRepository partidaRepository,
             ParticipacionRepository participacionRepository,
-            JugadorRepository jugadorRepository) {
+            JugadorRepository jugadorRepository,
+            BotIntegrationService botIntegrationService) {
         this.partidaRepository = partidaRepository;
         this.participacionRepository = participacionRepository;
         this.jugadorRepository = jugadorRepository;
+        this.botIntegrationService = botIntegrationService;
     }
 
     @PostConstruct
@@ -169,7 +181,9 @@ public class PartidaService {
             partida.setCorriendo(true);
             partida.setEstado(ESTADO_RUNNING);
             initializeGameState(partida);
-            return Mapper.toDTO(partidaRepository.save(partida));
+            partida = partidaRepository.save(partida);
+            PartidaDTO result = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
+            return result == null ? Mapper.toDTO(partida) : result;
         }
     }
 
@@ -184,7 +198,9 @@ public class PartidaService {
             PartidaEntity partida = mustGetRunningPartida(idPartida);
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
             validatePlayerTurn(partida, participacion);
-            return advanceTurn(partida, LocalDateTime.now());
+            PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
+            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
+            return botUpdated == null ? updated : botUpdated;
         }
     }
 
@@ -209,7 +225,11 @@ public class PartidaService {
             participacionRepository.save(participacion);
 
             partida.setBolsa(serializeTileList(bag));
-            return advanceTurn(partida, LocalDateTime.now());
+            PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
+            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
+            PartidaDTO result = botUpdated == null ? updated : botUpdated;
+            result.setFichaRobada(drawnTile);
+            return result;
         }
     }
 
@@ -257,7 +277,79 @@ public class PartidaService {
                 return Mapper.toDTO(partidaRepository.save(partida));
             }
 
-            return advanceTurn(partida, LocalDateTime.now());
+            PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
+            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
+            return botUpdated == null ? updated : botUpdated;
+        }
+    }
+
+    @Transactional
+    public PartidaDTO jugarAvanzado(
+            Integer idPartida,
+            Integer idJugador,
+            String moveType,
+            List<List<String>> grupos,
+            Integer extendIndex,
+            List<String> extensionTiles,
+            List<List<String>> newBoard) {
+        synchronized (turnMutex) {
+            if (moveType == null || moveType.isBlank()) {
+                throw new IllegalArgumentException("moveType es obligatorio");
+            }
+
+            String action = moveType.trim().toLowerCase(Locale.ROOT);
+            if ("play_melds".equals(action)) {
+                return jugarGrupos(idPartida, idJugador, grupos);
+            }
+
+            PartidaEntity partida = mustGetRunningPartida(idPartida);
+            ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
+            validatePlayerTurn(partida, participacion);
+
+            if ("extend_meld".equals(action)) {
+                return jugarExtendHumano(partida, participacion, extendIndex, extensionTiles);
+            }
+            if ("replace_board".equals(action)) {
+                return jugarReplaceBoardHumano(partida, participacion, newBoard);
+            }
+            throw new IllegalArgumentException("moveType no soportado: " + moveType);
+        }
+    }
+
+    @Transactional
+    public PartidaDTO salirPartida(Integer idPartida, Integer idJugador) {
+        synchronized (turnMutex) {
+            PartidaEntity partida = partidaRepository.findById(idPartida)
+                    .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
+            ensureDefaultState(partida);
+
+            ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
+            if (!partida.isCorriendo() || !ESTADO_RUNNING.equals(partida.getEstado())) {
+                participacionRepository.delete(participacion);
+                return Mapper.toDTO(partida);
+            }
+
+            JugadorEntity bot = createBotPlayer(partida.getIdPartida());
+            ParticipacionEntity botParticipacion = new ParticipacionEntity();
+            botParticipacion.setId(new ParticipacionId(bot.getId(), partida.getIdPartida()));
+            botParticipacion.setJugador(bot);
+            botParticipacion.setPartida(partida);
+            botParticipacion.setFichasActuales(participacion.getFichasActuales());
+            botParticipacion.setHabilidadesActuales(participacion.getHabilidadesActuales());
+            botParticipacion.setManoActual(participacion.getManoActual());
+            botParticipacion.setOrdenTurno(participacion.getOrdenTurno());
+
+            participacionRepository.delete(participacion);
+            participacionRepository.save(botParticipacion);
+
+            LocalDateTime now = LocalDateTime.now();
+            TurnRuntime runtime = createRuntimeFromDatabase(partida, now);
+            if (runtime != null) {
+                turnRuntimeByPartida.put(partida.getIdPartida(), runtime);
+            }
+
+            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, now);
+            return botUpdated == null ? Mapper.toDTO(partida) : botUpdated;
         }
     }
 
@@ -284,7 +376,7 @@ public class PartidaService {
     }
 
     private void initializeGameState(PartidaEntity partida) {
-        List<ParticipacionEntity> participaciones = getOrderedParticipaciones(partida.getIdPartida());
+        List<ParticipacionEntity> participaciones = ensurePlayersAndGetForStart(partida);
 
         if (participaciones.isEmpty()) {
             throw new IllegalStateException("No se puede iniciar la partida sin jugadores en PARTICIPACION");
@@ -322,6 +414,577 @@ public class PartidaService {
                     new TurnRuntime(occupiedSlots, 0, now.plusSeconds(TURN_TIMEOUT_SECONDS))
             );
         }
+    }
+
+    private List<ParticipacionEntity> ensurePlayersAndGetForStart(PartidaEntity partida) {
+        List<ParticipacionEntity> participaciones = getOrderedParticipaciones(partida.getIdPartida());
+        if (participaciones.isEmpty()) {
+            return participaciones;
+        }
+
+        int missing = MAX_TURN_SLOTS - participaciones.size();
+        if (missing <= 0) {
+            return participaciones;
+        }
+
+        for (int i = 0; i < missing; i++) {
+            JugadorEntity bot = createBotPlayer(partida.getIdPartida());
+            ParticipacionEntity botParticipacion = new ParticipacionEntity();
+            botParticipacion.setId(new ParticipacionId(bot.getId(), partida.getIdPartida()));
+            botParticipacion.setJugador(bot);
+            botParticipacion.setPartida(partida);
+            botParticipacion.setFichasActuales(0);
+            botParticipacion.setHabilidadesActuales("");
+            botParticipacion.setManoActual("");
+            botParticipacion.setOrdenTurno(null);
+            participacionRepository.save(botParticipacion);
+        }
+
+        return getOrderedParticipaciones(partida.getIdPartida());
+    }
+
+    private JugadorEntity createBotPlayer(Integer idPartida) {
+        int suffix = 1;
+        String candidate;
+        do {
+            candidate = BOT_NAME_PREFIX + idPartida + "_" + suffix;
+            suffix++;
+        } while (jugadorRepository.existsByNombreIgnoreCase(candidate));
+        return jugadorRepository.save(new JugadorEntity(candidate, "bot"));
+    }
+
+    private boolean isBotPlayer(ParticipacionEntity participacion) {
+        return participacion != null
+                && participacion.getJugador() != null
+                && participacion.getJugador().getNombre() != null
+                && participacion.getJugador().getNombre().startsWith(BOT_NAME_PREFIX);
+    }
+
+    private PartidaDTO runAutomatedBotTurnsIfNeeded(PartidaEntity partida, LocalDateTime now) {
+        if (partida == null || !partida.isCorriendo() || !ESTADO_RUNNING.equals(partida.getEstado())) {
+            return null;
+        }
+
+        PartidaDTO lastState = null;
+        int safety = 0;
+        while (partida.isCorriendo() && ESTADO_RUNNING.equals(partida.getEstado()) && safety < MAX_AUTOMATED_BOT_TURNS) {
+            safety++;
+            ParticipacionEntity botTurn = getParticipacionByTurn(partida.getIdPartida(), partida.getTurno());
+            if (!isBotPlayer(botTurn)) {
+                break;
+            }
+
+            BotMoveResponse moveResponse = askBotMove(partida, botTurn);
+            applyBotMove(partida, botTurn, moveResponse, now);
+            partida = partidaRepository.save(partida);
+            lastState = Mapper.toDTO(partida);
+        }
+        return lastState;
+    }
+
+    private ParticipacionEntity getParticipacionByTurn(Integer idPartida, int turno) {
+        int slot = normalizeTurn(turno);
+        List<ParticipacionEntity> participaciones = getOrderedParticipaciones(idPartida);
+        return participaciones.stream()
+                .filter(p -> p.getOrdenTurno() != null && normalizeTurn(p.getOrdenTurno()) == slot)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No hay jugador asignado al turno " + slot));
+    }
+
+    private BotMoveResponse askBotMove(PartidaEntity partida, ParticipacionEntity botParticipacion) {
+        BotMoveRequest payload = new BotMoveRequest();
+        payload.setBoard(toIaBoard(parseMesaGroups(partida.getConjuntoMesa())));
+        payload.setPoolCount(parseTileList(partida.getBolsa()).size());
+        payload.setMyTiles(toIaTiles(parseTileList(botParticipacion.getManoActual())));
+        payload.setOpponentRackCounts(getOpponentRackCounts(partida.getIdPartida(), botParticipacion.getJugador().getId()));
+        payload.setOpened(!parseMesaGroups(partida.getConjuntoMesa()).isEmpty());
+        payload.setLevel(BOT_LEVEL);
+        payload.setRandomness(BOT_RANDOMNESS);
+        payload.setTurnNumber(partida.getTurno());
+        return botIntegrationService.askMove(payload);
+    }
+
+    private List<Integer> getOpponentRackCounts(Integer idPartida, Integer idBotJugador) {
+        List<ParticipacionEntity> participaciones = getOrderedParticipaciones(idPartida);
+        List<Integer> counts = new ArrayList<>();
+        for (ParticipacionEntity p : participaciones) {
+            if (!p.getJugador().getId().equals(idBotJugador)) {
+                counts.add(p.getFichasActuales());
+            }
+        }
+        return counts;
+    }
+
+    private void applyBotMove(
+            PartidaEntity partida,
+            ParticipacionEntity botParticipacion,
+            BotMoveResponse moveResponse,
+            LocalDateTime now) {
+        if (moveResponse == null || moveResponse.getMove() == null || moveResponse.getMove().getMoveType() == null) {
+            throw new IllegalStateException("La IA no devolvio una jugada valida");
+        }
+
+        BotMoveDTO move = moveResponse.getMove();
+        String moveType = move.getMoveType();
+        switch (moveType) {
+            case "pass":
+                drawOneTileIfPossible(partida, botParticipacion);
+                advanceTurn(partida, now);
+                return;
+            case "play_melds":
+                applyBotPlayMelds(partida, botParticipacion, move.getNewMelds(), now);
+                return;
+            case "extend_meld":
+                applyBotExtendMeld(partida, botParticipacion, move.getExtendIndex(), move.getExtensionTiles(), now);
+                return;
+            case "replace_board":
+                applyBotReplaceBoard(partida, botParticipacion, move.getNewBoard(), now);
+                return;
+            default:
+                throw new IllegalStateException("Tipo de jugada de IA no soportado: " + moveType);
+        }
+    }
+
+    private void drawOneTileIfPossible(PartidaEntity partida, ParticipacionEntity participacion) {
+        List<String> bag = parseTileList(partida.getBolsa());
+        if (bag.isEmpty()) {
+            return;
+        }
+        String drawn = bag.remove(0);
+        List<String> hand = parseTileList(participacion.getManoActual());
+        hand.add(drawn);
+        participacion.setManoActual(serializeTileList(hand));
+        participacion.setFichasActuales(hand.size());
+        participacionRepository.save(participacion);
+        partida.setBolsa(serializeTileList(bag));
+    }
+
+    private PartidaDTO jugarExtendHumano(
+            PartidaEntity partida,
+            ParticipacionEntity participacion,
+            Integer extendIndex,
+            List<String> extensionTiles) {
+        if (extendIndex == null || extensionTiles == null || extensionTiles.size() != 1) {
+            throw new IllegalArgumentException("Para extend_meld debes enviar extendIndex y una extensionTiles");
+        }
+
+        List<List<String>> mesa = parseMesaGroups(partida.getConjuntoMesa());
+        if (extendIndex < 0 || extendIndex >= mesa.size()) {
+            throw new IllegalArgumentException("extendIndex fuera de rango");
+        }
+
+        String tile = normalizeTile(extensionTiles.get(0));
+        List<String> hand = parseTileList(participacion.getManoActual());
+        if (!hand.contains(tile)) {
+            throw new IllegalStateException("La ficha " + tile + " no esta en tu mano");
+        }
+
+        List<String> target = new ArrayList<>(mesa.get(extendIndex));
+        List<String> appended = new ArrayList<>(target);
+        appended.add(tile);
+
+        List<String> prepended = new ArrayList<>();
+        prepended.add(tile);
+        prepended.addAll(target);
+
+        List<String> extended;
+        if (isValidRummikubGroup(appended)) {
+            extended = appended;
+        } else if (isValidRummikubGroup(prepended)) {
+            extended = prepended;
+        } else {
+            throw new IllegalArgumentException("No se puede extender ese grupo con la ficha indicada");
+        }
+
+        List<String> updatedHand = removeTilesFromHand(hand, List.of(tile));
+        participacion.setManoActual(serializeTileList(updatedHand));
+        participacion.setFichasActuales(updatedHand.size());
+        participacionRepository.save(participacion);
+
+        mesa.set(extendIndex, extended);
+        partida.setConjuntoMesa(serializeMesaGroups(mesa));
+
+        if (updatedHand.isEmpty()) {
+            finishGame(partida, participacion.getJugador().getId());
+            return Mapper.toDTO(partidaRepository.save(partida));
+        }
+
+        PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
+        PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
+        return botUpdated == null ? updated : botUpdated;
+    }
+
+    private PartidaDTO jugarReplaceBoardHumano(
+            PartidaEntity partida,
+            ParticipacionEntity participacion,
+            List<List<String>> newBoard) {
+        if (newBoard == null || newBoard.isEmpty()) {
+            throw new IllegalArgumentException("Para replace_board debes enviar newBoard");
+        }
+
+        List<List<String>> normalized = normalizeGroups(newBoard);
+        for (List<String> group : normalized) {
+            if (!isValidRummikubGroup(group)) {
+                throw new IllegalArgumentException("Grupo invalido en newBoard: " + group);
+            }
+        }
+
+        List<List<String>> currentBoard = parseMesaGroups(partida.getConjuntoMesa());
+        List<String> hand = parseTileList(participacion.getManoActual());
+        Map<String, Integer> boardCount = buildCountMap(flattenGroups(currentBoard));
+        Map<String, Integer> handCount = buildCountMap(hand);
+
+        Map<String, Integer> normalizedCount = buildCountMap(flattenGroups(normalized));
+        if (!isSubsetCount(normalizedCount, mergeCounts(boardCount, handCount))) {
+            throw new IllegalStateException("newBoard usa fichas inexistentes en tablero/mano");
+        }
+
+        Map<String, Integer> usedFromHand = subtractCountsIgnoringNegatives(normalizedCount, boardCount);
+        if (!isSubsetCount(usedFromHand, handCount)) {
+            throw new IllegalStateException("newBoard requiere fichas no disponibles en mano");
+        }
+
+        List<String> tilesToRemove = expandCountMap(usedFromHand);
+        List<String> updatedHand = removeTilesFromHand(hand, tilesToRemove);
+        participacion.setManoActual(serializeTileList(updatedHand));
+        participacion.setFichasActuales(updatedHand.size());
+        participacionRepository.save(participacion);
+
+        partida.setConjuntoMesa(serializeMesaGroups(normalized));
+
+        if (updatedHand.isEmpty()) {
+            finishGame(partida, participacion.getJugador().getId());
+            return Mapper.toDTO(partidaRepository.save(partida));
+        }
+
+        PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
+        PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
+        return botUpdated == null ? updated : botUpdated;
+    }
+
+    private void applyBotPlayMelds(
+            PartidaEntity partida,
+            ParticipacionEntity botParticipacion,
+            List<List<String>> iaMelds,
+            LocalDateTime now) {
+        if (iaMelds == null || iaMelds.isEmpty()) {
+            drawOneTileIfPossible(partida, botParticipacion);
+            advanceTurn(partida, now);
+            return;
+        }
+
+        List<String> hand = parseTileList(botParticipacion.getManoActual());
+        Map<String, Integer> handCount = buildCountMap(hand);
+        List<List<String>> normalizedGroups = normalizeIaGroupsWithHand(iaMelds, handCount);
+
+        List<String> playedTiles = new ArrayList<>();
+        for (List<String> group : normalizedGroups) {
+            if (!isValidRummikubGroup(group)) {
+                throw new IllegalStateException("La IA devolvio un grupo invalido: " + group);
+            }
+            playedTiles.addAll(group);
+        }
+
+        List<String> updatedHand = removeTilesFromHand(hand, playedTiles);
+        botParticipacion.setManoActual(serializeTileList(updatedHand));
+        botParticipacion.setFichasActuales(updatedHand.size());
+        participacionRepository.save(botParticipacion);
+
+        List<List<String>> mesa = parseMesaGroups(partida.getConjuntoMesa());
+        mesa.addAll(normalizedGroups);
+        partida.setConjuntoMesa(serializeMesaGroups(mesa));
+
+        if (updatedHand.isEmpty()) {
+            finishGame(partida, botParticipacion.getJugador().getId());
+            return;
+        }
+        advanceTurn(partida, now);
+    }
+
+    private void applyBotExtendMeld(
+            PartidaEntity partida,
+            ParticipacionEntity botParticipacion,
+            Integer extendIndex,
+            List<String> extensionTiles,
+            LocalDateTime now) {
+        if (extendIndex == null || extensionTiles == null || extensionTiles.size() != 1) {
+            drawOneTileIfPossible(partida, botParticipacion);
+            advanceTurn(partida, now);
+            return;
+        }
+
+        List<List<String>> mesa = parseMesaGroups(partida.getConjuntoMesa());
+        if (extendIndex < 0 || extendIndex >= mesa.size()) {
+            drawOneTileIfPossible(partida, botParticipacion);
+            advanceTurn(partida, now);
+            return;
+        }
+
+        List<String> hand = parseTileList(botParticipacion.getManoActual());
+        Map<String, Integer> handCount = buildCountMap(hand);
+        String tile = resolveIaTileForHand(extensionTiles.get(0), handCount);
+
+        List<String> target = new ArrayList<>(mesa.get(extendIndex));
+        List<String> appended = new ArrayList<>(target);
+        appended.add(tile);
+
+        List<String> prepended = new ArrayList<>();
+        prepended.add(tile);
+        prepended.addAll(target);
+
+        List<String> extended;
+        if (isValidRummikubGroup(appended)) {
+            extended = appended;
+        } else if (isValidRummikubGroup(prepended)) {
+            extended = prepended;
+        } else {
+            drawOneTileIfPossible(partida, botParticipacion);
+            advanceTurn(partida, now);
+            return;
+        }
+
+        List<String> updatedHand = removeTilesFromHand(hand, List.of(tile));
+        botParticipacion.setManoActual(serializeTileList(updatedHand));
+        botParticipacion.setFichasActuales(updatedHand.size());
+        participacionRepository.save(botParticipacion);
+
+        mesa.set(extendIndex, extended);
+        partida.setConjuntoMesa(serializeMesaGroups(mesa));
+
+        if (updatedHand.isEmpty()) {
+            finishGame(partida, botParticipacion.getJugador().getId());
+            return;
+        }
+        advanceTurn(partida, now);
+    }
+
+    private void applyBotReplaceBoard(
+            PartidaEntity partida,
+            ParticipacionEntity botParticipacion,
+            List<List<String>> iaNewBoard,
+            LocalDateTime now) {
+        if (iaNewBoard == null || iaNewBoard.isEmpty()) {
+            drawOneTileIfPossible(partida, botParticipacion);
+            advanceTurn(partida, now);
+            return;
+        }
+
+        List<List<String>> currentBoard = parseMesaGroups(partida.getConjuntoMesa());
+        List<String> hand = parseTileList(botParticipacion.getManoActual());
+        Map<String, Integer> boardCount = buildCountMap(flattenGroups(currentBoard));
+        Map<String, Integer> handCount = buildCountMap(hand);
+        List<List<String>> normalized = normalizeIaBoardWithPools(iaNewBoard, boardCount, handCount);
+
+        for (List<String> group : normalized) {
+            if (!isValidRummikubGroup(group)) {
+                throw new IllegalStateException("La IA devolvio una reorganizacion invalida");
+            }
+        }
+
+        Map<String, Integer> normalizedCount = buildCountMap(flattenGroups(normalized));
+        if (!isSubsetCount(normalizedCount, mergeCounts(boardCount, handCount))) {
+            throw new IllegalStateException("La IA uso fichas que no existen en tablero/mano");
+        }
+
+        Map<String, Integer> usedFromHand = subtractCountsIgnoringNegatives(normalizedCount, boardCount);
+        if (!isSubsetCount(usedFromHand, handCount)) {
+            throw new IllegalStateException("La IA requiere fichas no disponibles en mano");
+        }
+
+        List<String> tilesToRemove = expandCountMap(usedFromHand);
+        List<String> updatedHand = removeTilesFromHand(hand, tilesToRemove);
+        botParticipacion.setManoActual(serializeTileList(updatedHand));
+        botParticipacion.setFichasActuales(updatedHand.size());
+        participacionRepository.save(botParticipacion);
+
+        partida.setConjuntoMesa(serializeMesaGroups(normalized));
+        if (updatedHand.isEmpty()) {
+            finishGame(partida, botParticipacion.getJugador().getId());
+            return;
+        }
+        advanceTurn(partida, now);
+    }
+
+    private List<List<String>> normalizeIaGroupsWithHand(List<List<String>> iaGroups, Map<String, Integer> handCount) {
+        List<List<String>> groups = new ArrayList<>();
+        for (List<String> group : iaGroups) {
+            if (group == null || group.size() < 3) {
+                throw new IllegalStateException("La IA devolvio un grupo vacio o demasiado pequeno");
+            }
+            List<String> normalized = new ArrayList<>();
+            for (String iaTile : group) {
+                normalized.add(resolveIaTileForHand(iaTile, handCount));
+            }
+            groups.add(normalized);
+        }
+        return groups;
+    }
+
+    private List<List<String>> normalizeIaBoardWithPools(
+            List<List<String>> iaGroups,
+            Map<String, Integer> boardCount,
+            Map<String, Integer> handCount) {
+        Map<String, Integer> available = mergeCounts(boardCount, handCount);
+        List<List<String>> groups = new ArrayList<>();
+        for (List<String> group : iaGroups) {
+            if (group == null || group.size() < 3) {
+                throw new IllegalStateException("La IA devolvio un grupo invalido en new_board");
+            }
+            List<String> normalized = new ArrayList<>();
+            for (String iaTile : group) {
+                String resolved = resolveIaTileFromPool(iaTile, available);
+                normalized.add(resolved);
+            }
+            groups.add(normalized);
+        }
+        return groups;
+    }
+
+    private String resolveIaTileForHand(String iaTile, Map<String, Integer> handCount) {
+        String normalizedIa = normalizeIaTile(iaTile);
+        if ("J*".equals(normalizedIa)) {
+            if (handCount.getOrDefault("J1", 0) > 0) {
+                handCount.put("J1", handCount.get("J1") - 1);
+                return "J1";
+            }
+            if (handCount.getOrDefault("J2", 0) > 0) {
+                handCount.put("J2", handCount.get("J2") - 1);
+                return "J2";
+            }
+            throw new IllegalStateException("La IA intento usar comodin sin tenerlo en mano");
+        }
+
+        String tile = toBackendTile(normalizedIa);
+        Integer available = handCount.getOrDefault(tile, 0);
+        if (available <= 0) {
+            throw new IllegalStateException("La IA intento usar la ficha " + tile + " que no esta en mano");
+        }
+        handCount.put(tile, available - 1);
+        return tile;
+    }
+
+    private String resolveIaTileFromPool(String iaTile, Map<String, Integer> available) {
+        String normalizedIa = normalizeIaTile(iaTile);
+        if ("J*".equals(normalizedIa)) {
+            if (available.getOrDefault("J1", 0) > 0) {
+                available.put("J1", available.get("J1") - 1);
+                return "J1";
+            }
+            if (available.getOrDefault("J2", 0) > 0) {
+                available.put("J2", available.get("J2") - 1);
+                return "J2";
+            }
+            throw new IllegalStateException("La IA uso mas comodines de los disponibles");
+        }
+
+        String tile = toBackendTile(normalizedIa);
+        Integer count = available.getOrDefault(tile, 0);
+        if (count <= 0) {
+            throw new IllegalStateException("La IA uso una ficha inexistente: " + tile);
+        }
+        available.put(tile, count - 1);
+        return tile;
+    }
+
+    private List<List<String>> toIaBoard(List<List<String>> board) {
+        List<List<String>> out = new ArrayList<>();
+        for (List<String> group : board) {
+            out.add(toIaTiles(group));
+        }
+        return out;
+    }
+
+    private List<String> toIaTiles(List<String> backendTiles) {
+        List<String> out = new ArrayList<>();
+        for (String tile : backendTiles) {
+            out.add(toIaTile(tile));
+        }
+        return out;
+    }
+
+    private String toIaTile(String backendTile) {
+        String normalized = normalizeTile(backendTile);
+        if (isJoker(normalized)) {
+            return "J*";
+        }
+        char color = parseColor(normalized);
+        int value = parseValue(normalized);
+        return color + String.format("%02d", value);
+    }
+
+    private String normalizeIaTile(String iaTile) {
+        if (iaTile == null || iaTile.isBlank()) {
+            throw new IllegalStateException("La IA devolvio una ficha vacia");
+        }
+        String t = iaTile.trim().toUpperCase();
+        if ("J".equals(t) || "J*".equals(t)) {
+            return "J*";
+        }
+        if (!t.matches("^[RBOK](0[1-9]|1[0-3])$")) {
+            throw new IllegalStateException("Formato de ficha IA invalido: " + iaTile);
+        }
+        return t;
+    }
+
+    private String toBackendTile(String iaTile) {
+        if ("J*".equals(iaTile) || "J".equals(iaTile)) {
+            return "J1";
+        }
+        char color = iaTile.charAt(0);
+        int value = Integer.parseInt(iaTile.substring(1));
+        return color + String.valueOf(value);
+    }
+
+    private List<String> flattenGroups(List<List<String>> groups) {
+        List<String> out = new ArrayList<>();
+        for (List<String> group : groups) {
+            if (group != null) {
+                out.addAll(group);
+            }
+        }
+        return out;
+    }
+
+    private Map<String, Integer> mergeCounts(Map<String, Integer> left, Map<String, Integer> right) {
+        Map<String, Integer> merged = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : left.entrySet()) {
+            merged.put(entry.getKey(), entry.getValue());
+        }
+        for (Map.Entry<String, Integer> entry : right.entrySet()) {
+            merged.put(entry.getKey(), merged.getOrDefault(entry.getKey(), 0) + entry.getValue());
+        }
+        return merged;
+    }
+
+    private boolean isSubsetCount(Map<String, Integer> candidate, Map<String, Integer> reference) {
+        for (Map.Entry<String, Integer> entry : candidate.entrySet()) {
+            if (entry.getValue() > reference.getOrDefault(entry.getKey(), 0)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Map<String, Integer> subtractCountsIgnoringNegatives(Map<String, Integer> a, Map<String, Integer> b) {
+        Map<String, Integer> out = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : a.entrySet()) {
+            int diff = entry.getValue() - b.getOrDefault(entry.getKey(), 0);
+            if (diff > 0) {
+                out.put(entry.getKey(), diff);
+            }
+        }
+        return out;
+    }
+
+    private List<String> expandCountMap(Map<String, Integer> map) {
+        List<String> out = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+            for (int i = 0; i < entry.getValue(); i++) {
+                out.add(entry.getKey());
+            }
+        }
+        out.sort(Comparator.naturalOrder());
+        return out;
     }
 
     private PartidaEntity mustGetRunningPartida(Integer idPartida) {
@@ -526,6 +1189,7 @@ public class PartidaService {
             partida.setTurno(nextTurn);
             partida.setTurnoInicio(now);
             partidaRepository.save(partida);
+            runAutomatedBotTurnsIfNeeded(partida, now);
         }
     }
 

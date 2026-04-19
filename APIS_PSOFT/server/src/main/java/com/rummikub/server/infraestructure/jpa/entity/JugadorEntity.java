@@ -33,8 +33,11 @@ public class JugadorEntity {
     @Column(name = "URL_IMG_PERFIL")
     private String urlImgPerfil;
 
-    @Column(name = "COSMETICOS")
-    private String cosmeticos;
+    @Column(name = "SKIN_FICHAS")
+    private String skinFichas;
+
+    @Column(name = "SKIN_TABLERO")
+    private String skinTablero;
 
     @Column(name = "MONEDAS", nullable = false)
     private int monedas;
@@ -58,7 +61,8 @@ public class JugadorEntity {
         this.nombre = nombre;
         this.contrasena = contrasena;
         this.urlImgPerfil = "";
-        this.cosmeticos = "";
+        this.skinFichas = "";
+        this.skinTablero = "";
         this.monedas = 0;
         this.partidasGanadas = 0;
         this.partidasPerdidas = 0;

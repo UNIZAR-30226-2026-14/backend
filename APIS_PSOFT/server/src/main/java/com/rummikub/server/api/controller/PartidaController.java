@@ -2,6 +2,7 @@ package com.rummikub.server.api.controller;
 
 import com.rummikub.server.api.dto.PartidaDTO;
 import com.rummikub.server.api.dto.partida.CreatePartidaRequest;
+import com.rummikub.server.api.dto.partida.PlayAdvancedTurnRequest;
 import com.rummikub.server.api.dto.partida.PlayTurnRequest;
 import com.rummikub.server.api.dto.partida.TurnActionRequest;
 import com.rummikub.server.api.dto.partida.UpdatePartidaRequest;
@@ -112,8 +113,34 @@ public class PartidaController {
         return partidaService.jugarGrupos(id, request.getIdJugador(), request.getGrupos());
     }
 
+    @PostMapping("/{id}/jugar-avanzado")
+    public PartidaDTO jugarAvanzado(
+            @PathVariable Integer id,
+            @Valid @RequestBody PlayAdvancedTurnRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
+        return partidaService.jugarAvanzado(
+                id,
+                request.getIdJugador(),
+                request.getMoveType(),
+                request.getGrupos(),
+                request.getExtendIndex(),
+                request.getExtensionTiles(),
+                request.getNewBoard()
+        );
+    }
+
     @PostMapping("/{id}/iniciar")
     public PartidaDTO iniciar(@PathVariable Integer id) {
         return partidaService.iniciar(id);
+    }
+
+    @PostMapping("/{id}/salir")
+    public PartidaDTO salir(
+            @PathVariable Integer id,
+            @Valid @RequestBody TurnActionRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
+        return partidaService.salirPartida(id, request.getIdJugador());
     }
 }

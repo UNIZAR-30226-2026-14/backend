@@ -1,0 +1,409 @@
+{
+  "info": {
+    "name": "RummiPlus API - Bots Integracion Minima",
+    "_postman_id": "5ac6f9fc-1b80-4a12-9b0f-1fd36f6da801",
+    "description": "Coleccion minima para validar integracion backend-IA de bots: autofill al iniciar, reemplazo al salir y turnos automatizados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('runId')) {",
+          "  pm.collectionVariables.set('runId', String(Date.now()));",
+          "}",
+          "const d = new Date();",
+          "const yyyy = d.getFullYear();",
+          "const mm = String(d.getMonth() + 1).padStart(2, '0');",
+          "const dd = String(d.getDate()).padStart(2, '0');",
+          "pm.collectionVariables.set('today', `${yyyy}-${mm}-${dd}`);"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "runId", "value": "" },
+    { "key": "today", "value": "" },
+    { "key": "human1Name", "value": "humano_{{runId}}" },
+    { "key": "human1Pass", "value": "secreto123" },
+    { "key": "human1Id", "value": "" },
+    { "key": "human1Token", "value": "" },
+    { "key": "partidaId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Setup",
+      "item": [
+        {
+          "name": "Wipe BD",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/wipe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "wipe"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Wipe OK', function () { pm.expect([200, 204]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear Jugador Humano",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"humano_{{runId}}\",\n  \"contrasena\": \"{{human1Pass}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jugadores",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jugadores"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Jugador creado', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('human1Id', body.id);",
+                  "pm.collectionVariables.set('human1Name', body.nombre);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Humano",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{human1Name}}\",\n  \"contrasena\": \"{{human1Pass}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login OK', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('human1Token', body.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear Partida WAITING",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turno\": 0,\n  \"fecha\": \"{{today}}\",\n  \"mercado\": \"\",\n  \"bolsa\": \"\",\n  \"conjuntoMesa\": \"\",\n  \"corriendo\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "partidas"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Partida creada', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('partidaId', body.idPartida);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear Participacion Humano",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idJugador\": {{human1Id}},\n  \"idPartida\": {{partidaId}},\n  \"fichasActuales\": 0,\n  \"habilidadesActuales\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/participaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "participaciones"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Participacion creada', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Flujo A - Iniciar con autofill de bots",
+      "item": [
+        {
+          "name": "Iniciar Partida",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}/iniciar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "partidas", "{{partidaId}}", "iniciar"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Partida iniciada', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Estado RUNNING o FINISHED', function () { pm.expect(['RUNNING', 'FINISHED']).to.include(body.estado); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar 4 participaciones",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/participaciones?partidaId={{partidaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "participaciones"],
+              "query": [
+                { "key": "partidaId", "value": "{{partidaId}}" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Consulta OK', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "const arr = pm.response.json();",
+                  "pm.test('Se completa hasta 4 jugadores', function () { pm.expect(arr.length).to.equal(4); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Flujo B - Salida de humano y reemplazo por bot",
+      "item": [
+        {
+          "name": "Humano sale de la partida",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{human1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idJugador\": {{human1Id}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}/salir",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "partidas", "{{partidaId}}", "salir"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Salida OK', function () { pm.expect(pm.response.code).to.equal(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar que sigue habiendo 4 participaciones y ya no está el humano",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/participaciones?partidaId={{partidaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "participaciones"],
+              "query": [
+                { "key": "partidaId", "value": "{{partidaId}}" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const arr = pm.response.json();",
+                  "const humanId = Number(pm.collectionVariables.get('human1Id'));",
+                  "pm.test('Sigue habiendo 4', function () { pm.expect(arr.length).to.equal(4); });",
+                  "pm.test('El humano ya no participa', function () {",
+                  "  const ids = arr.map(x => x.idJugador);",
+                  "  pm.expect(ids).to.not.include(humanId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Flujo C - Turnos automáticos de bots",
+      "item": [
+        {
+          "name": "Crear segundo escenario (1 humano + 3 bots)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turno\": 0,\n  \"fecha\": \"{{today}}\",\n  \"mercado\": \"\",\n  \"bolsa\": \"\",\n  \"conjuntoMesa\": \"\",\n  \"corriendo\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "partidas"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('partidaId', body.idPartida);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear participacion humano en escenario 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idJugador\": {{human1Id}},\n  \"idPartida\": {{partidaId}},\n  \"fichasActuales\": 0,\n  \"habilidadesActuales\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/participaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "participaciones"]
+            }
+          }
+        },
+        {
+          "name": "Iniciar escenario 2",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}/iniciar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "partidas", "{{partidaId}}", "iniciar"]
+            }
+          }
+        },
+        {
+          "name": "Humano roba (backend debe ejecutar luego turnos de bots)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{human1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idJugador\": {{human1Id}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partidas/{{partidaId}}/robar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "partidas", "{{partidaId}}", "robar"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Robo humano OK', function () { pm.expect(pm.response.code).to.equal(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Estado valido', function () { pm.expect(['RUNNING', 'FINISHED']).to.include(body.estado); });",
+                  "if (body.estado === 'RUNNING') {",
+                  "  pm.test('Tras bots, vuelve turno humano (0)', function () { pm.expect(body.turno).to.equal(0); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

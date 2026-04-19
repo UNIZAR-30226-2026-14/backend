@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "ana_{{runId}}",
+      "contrasena": "secreto123"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Login A OK', ()=> pm.expect(pm.response.code).to.eql(200));
+      const b=pm.response.json(); pm.collectionVariables.set('tokenA', b.token);
+    language: text/javascript
+order: 4000

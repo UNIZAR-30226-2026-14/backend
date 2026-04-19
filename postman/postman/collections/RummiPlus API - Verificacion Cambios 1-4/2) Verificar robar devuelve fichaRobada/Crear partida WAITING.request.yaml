@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "turno": 0,
+      "fecha": "{{today}}",
+      "mercado": "",
+      "bolsa": "",
+      "conjuntoMesa": "",
+      "corriendo": false
+    }
+scripts:
+  - type: afterResponse
+    code: const b=pm.response.json(); pm.collectionVariables.set('partidaId',
+      b.idPartida);
+    language: text/javascript
+order: 1000

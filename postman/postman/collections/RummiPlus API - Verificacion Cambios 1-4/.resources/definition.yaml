@@ -1,0 +1,29 @@
+$kind: collection
+description: "Valida: (1) skinFichas/skinTablero, (2) fichaRobada en robar, (3)
+  amigos con nombre+estado, (4) jugar-avanzado replace_board."
+variables:
+  baseUrl: http://localhost:8080
+  runId: ""
+  today: ""
+  jugadorAId: ""
+  jugadorBId: ""
+  tokenA: ""
+  partidaId: ""
+  bolsaActual: ""
+  mercadoActual: ""
+scripts:
+  - type: http:beforeRequest
+    code: >-
+      if (!pm.collectionVariables.get('runId'))
+      pm.collectionVariables.set('runId', String(Date.now()));
+
+      const d = new Date();
+
+      const yyyy = d.getFullYear();
+
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+
+      const dd = String(d.getDate()).padStart(2,'0');
+
+      pm.collectionVariables.set('today', `${yyyy}-${mm}-${dd}`);
+    language: text/javascript

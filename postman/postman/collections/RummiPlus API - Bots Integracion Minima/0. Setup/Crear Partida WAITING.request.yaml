@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "turno": 0,
+      "fecha": "{{today}}",
+      "mercado": "",
+      "bolsa": "",
+      "conjuntoMesa": "",
+      "corriendo": false
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Partida creada', function () {
+      pm.expect(pm.response.code).to.be.oneOf([200, 201]); });
+
+      const body = pm.response.json();
+
+      pm.collectionVariables.set('partidaId', body.idPartida);
+    language: text/javascript
+order: 4000

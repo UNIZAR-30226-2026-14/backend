@@ -43,6 +43,8 @@ public class JugadorController {
         JugadorEntity jugador = new JugadorEntity();
         jugador.setNombre(request.getNombre());
         jugador.setContrasena(request.getContrasena());
+        jugador.setSkinFichas(request.getSkinFichas());
+        jugador.setSkinTablero(request.getSkinTablero());
 
         return jugadorService.create(jugador);
     }
@@ -52,6 +54,8 @@ public class JugadorController {
         JugadorEntity jugador = new JugadorEntity();
         jugador.setNombre(request.getNombre());
         jugador.setUrlImgPerfil(request.getUrlImgPerfil());
+        jugador.setSkinFichas(request.getSkinFichas());
+        jugador.setSkinTablero(request.getSkinTablero());
 
         return jugadorService.updateProfile(id, jugador);
     }

@@ -9,6 +9,12 @@ public class UpdateJugadorProfileRequest {
     @Size(max = 500, message = "La URL de perfil no puede superar 500 caracteres")
     private String urlImgPerfil;
 
+    @Size(max = 120, message = "skinFichas no puede superar 120 caracteres")
+    private String skinFichas;
+
+    @Size(max = 120, message = "skinTablero no puede superar 120 caracteres")
+    private String skinTablero;
+
     public String getNombre() {
         return nombre;
     }
@@ -23,5 +29,21 @@ public class UpdateJugadorProfileRequest {
 
     public void setUrlImgPerfil(String urlImgPerfil) {
         this.urlImgPerfil = urlImgPerfil;
+    }
+
+    public String getSkinFichas() {
+        return skinFichas;
+    }
+
+    public void setSkinFichas(String skinFichas) {
+        this.skinFichas = skinFichas;
+    }
+
+    public String getSkinTablero() {
+        return skinTablero;
+    }
+
+    public void setSkinTablero(String skinTablero) {
+        this.skinTablero = skinTablero;
     }
 }

@@ -44,7 +44,8 @@ public class Mapper {
                 .partidasEmpatadas(jug.getPartidasEmpatadas())
                 .partidasPendientes(jug.getPartidasPendientes())
                 .partidasFinalizadas(jug.getPartidasFinalizadas())
-                .cosmeticos(jug.getCosmeticos())
+                .skinFichas(jug.getSkinFichas())
+                .skinTablero(jug.getSkinTablero())
                 .build();
     }
 
@@ -54,7 +55,9 @@ public class Mapper {
         }
         return ListaDeAmigosDTO.builder()
                 .jugador1(lis.getJugador1().getId())
+                .jugador1Nombre(lis.getJugador1().getNombre())
                 .jugador2(lis.getJugador2().getId())
+                .jugador2Nombre(lis.getJugador2().getNombre())
                 .fecha(lis.getFecha() != null ? lis.getFecha().toString() : null)
                 .estado(lis.getEstado())
                 .build();

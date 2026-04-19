@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/salir"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{human1Token}}
+body:
+  type: text
+  content: |-
+    {
+      "idJugador": {{human1Id}}
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('Salida OK', function () {
+      pm.expect(pm.response.code).to.equal(200); });
+    language: text/javascript
+order: 1000

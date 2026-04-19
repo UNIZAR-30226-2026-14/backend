@@ -1,0 +1,18 @@
+$kind: http-request
+name: "PUT partida: fijar tablero manual"
+url: "{{baseUrl}}/api/partidas/{{partidaId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "turno": 0,
+      "fecha": "{{today}}",
+      "bolsa": "{{bolsaActual}}",
+      "mercado": "{{mercadoActual}}",
+      "conjuntoMesa": "R1,B1,O1;R2,R3,R4",
+      "corriendo": true
+    }
+order: 2000

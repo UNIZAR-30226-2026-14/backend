@@ -21,5 +21,6 @@ public class JugadorDTO {
     private int partidasEmpatadas;
     private int partidasPendientes;
     private int partidasFinalizadas;
-    private String cosmeticos;
+    private String skinFichas;
+    private String skinTablero;
 }

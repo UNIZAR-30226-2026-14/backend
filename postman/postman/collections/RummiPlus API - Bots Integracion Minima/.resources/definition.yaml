@@ -1,0 +1,24 @@
+$kind: collection
+description: "Coleccion minima para validar integracion backend-IA de bots:
+  autofill al iniciar, reemplazo al salir y turnos automatizados."
+variables:
+  baseUrl: http://localhost:8080
+  runId: ""
+  today: ""
+  human1Name: humano_{{runId}}
+  human1Pass: secreto123
+  human1Id: ""
+  human1Token: ""
+  partidaId: ""
+scripts:
+  - type: http:beforeRequest
+    code: |-
+      if (!pm.collectionVariables.get('runId')) {
+        pm.collectionVariables.set('runId', String(Date.now()));
+      }
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      pm.collectionVariables.set('today', `${yyyy}-${mm}-${dd}`);
+    language: text/javascript

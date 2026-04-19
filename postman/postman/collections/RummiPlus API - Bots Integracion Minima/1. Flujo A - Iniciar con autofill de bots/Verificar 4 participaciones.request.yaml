@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/participaciones?partidaId={{partidaId}}"
+method: GET
+queryParams:
+  partidaId: "{{partidaId}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Consulta OK', function () {
+      pm.expect(pm.response.code).to.equal(200); });
+
+      const arr = pm.response.json();
+
+      pm.test('Se completa hasta 4 jugadores', function () {
+      pm.expect(arr.length).to.equal(4); });
+    language: text/javascript
+order: 2000

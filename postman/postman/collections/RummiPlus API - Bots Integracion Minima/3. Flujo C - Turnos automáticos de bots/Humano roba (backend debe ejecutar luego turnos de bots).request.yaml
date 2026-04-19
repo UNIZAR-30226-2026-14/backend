@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/robar"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{human1Token}}
+body:
+  type: text
+  content: |-
+    {
+      "idJugador": {{human1Id}}
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Robo humano OK', function () {
+      pm.expect(pm.response.code).to.equal(200); });
+
+      const body = pm.response.json();
+
+      pm.test('Estado valido', function () { pm.expect(['RUNNING',
+      'FINISHED']).to.include(body.estado); });
+
+      if (body.estado === 'RUNNING') {
+        pm.test('Tras bots, vuelve turno humano (0)', function () { pm.expect(body.turno).to.equal(0); });
+      }
+    language: text/javascript
+order: 4000

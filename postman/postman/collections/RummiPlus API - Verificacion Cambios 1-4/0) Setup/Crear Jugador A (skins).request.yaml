@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{baseUrl}}/api/jugadores"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "ana_{{runId}}",
+      "contrasena": "secreto123",
+      "skinFichas": "gold_classic",
+      "skinTablero": "wood_oak"
+    }
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Jugador A creado', ()=>
+      pm.expect([200,201]).to.include(pm.response.code));
+
+      const b=pm.response.json(); pm.collectionVariables.set('jugadorAId',
+      b.id);
+
+      pm.test('Trae skinFichas', ()=>
+      pm.expect(b.skinFichas).to.eql('gold_classic'));
+
+      pm.test('Trae skinTablero', ()=>
+      pm.expect(b.skinTablero).to.eql('wood_oak'));
+    language: text/javascript
+order: 2000

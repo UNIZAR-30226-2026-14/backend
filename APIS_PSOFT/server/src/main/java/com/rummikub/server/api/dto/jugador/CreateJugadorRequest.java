@@ -12,6 +12,12 @@ public class CreateJugadorRequest {
     @Size(min = 6, max = 120, message = "La contrasena debe tener entre 6 y 120 caracteres")
     private String contrasena;
 
+    @Size(max = 120, message = "skinFichas no puede superar 120 caracteres")
+    private String skinFichas;
+
+    @Size(max = 120, message = "skinTablero no puede superar 120 caracteres")
+    private String skinTablero;
+
     public String getNombre() {
         return nombre;
     }
@@ -26,5 +32,21 @@ public class CreateJugadorRequest {
 
     public void setContrasena(String contrasena) {
         this.contrasena = contrasena;
+    }
+
+    public String getSkinFichas() {
+        return skinFichas;
+    }
+
+    public void setSkinFichas(String skinFichas) {
+        this.skinFichas = skinFichas;
+    }
+
+    public String getSkinTablero() {
+        return skinTablero;
+    }
+
+    public void setSkinTablero(String skinTablero) {
+        this.skinTablero = skinTablero;
     }
 }

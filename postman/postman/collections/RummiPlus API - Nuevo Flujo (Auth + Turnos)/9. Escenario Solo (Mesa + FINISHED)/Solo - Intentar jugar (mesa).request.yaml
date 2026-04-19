@@ -1,5 +1,4 @@
 $kind: http-request
-name: Solo - Intentar jugar (mesa)
 url: "{{baseUrl}}/api/partidas/{{partidaSoloId}}/jugar"
 method: POST
 headers:

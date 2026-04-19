@@ -44,8 +44,11 @@ public class JugadorService {
         if (jugador.getUrlImgPerfil() == null) {
             jugador.setUrlImgPerfil("");
         }
-        if (jugador.getCosmeticos() == null) {
-            jugador.setCosmeticos("");
+        if (jugador.getSkinFichas() == null) {
+            jugador.setSkinFichas("");
+        }
+        if (jugador.getSkinTablero() == null) {
+            jugador.setSkinTablero("");
         }
         jugador.setMonedas(0);
         jugador.setPartidasGanadas(0);
@@ -63,7 +66,9 @@ public class JugadorService {
         }
         boolean nombreVacio = profileData.getNombre() == null || profileData.getNombre().isBlank();
         boolean urlVacia = profileData.getUrlImgPerfil() == null || profileData.getUrlImgPerfil().isBlank();
-        if (nombreVacio && urlVacia) {
+        boolean skinFichasVacia = profileData.getSkinFichas() == null || profileData.getSkinFichas().isBlank();
+        boolean skinTableroVacia = profileData.getSkinTablero() == null || profileData.getSkinTablero().isBlank();
+        if (nombreVacio && urlVacia && skinFichasVacia && skinTableroVacia) {
             throw new IllegalArgumentException("Debes indicar al menos un campo para actualizar");
         }
 
@@ -75,6 +80,12 @@ public class JugadorService {
         }
         if (profileData.getUrlImgPerfil() != null) {
             jugador.setUrlImgPerfil(profileData.getUrlImgPerfil());
+        }
+        if (profileData.getSkinFichas() != null) {
+            jugador.setSkinFichas(profileData.getSkinFichas());
+        }
+        if (profileData.getSkinTablero() != null) {
+            jugador.setSkinTablero(profileData.getSkinTablero());
         }
 
         return Mapper.toDTO(jugadorRepository.save(jugador));

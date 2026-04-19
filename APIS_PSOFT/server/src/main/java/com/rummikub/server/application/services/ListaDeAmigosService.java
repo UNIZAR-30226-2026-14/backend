@@ -39,7 +39,7 @@ public class ListaDeAmigosService {
 
     public List<ListaDeAmigosDTO> getByJugadorId(Integer jugadorId) {
         return listaDeAmigosRepository.findByJugador1_IdOrJugador2_Id(jugadorId, jugadorId).stream()
-                .map(Mapper::toDTO)
+                .map(rel -> enrichForJugador(jugadorId, Mapper.toDTO(rel)))
                 .toList();
     }
 
@@ -97,5 +97,19 @@ public class ListaDeAmigosService {
             throw new NoSuchElementException("Relacion de amistad no encontrada");
         }
         listaDeAmigosRepository.deleteById(id);
+    }
+
+    private ListaDeAmigosDTO enrichForJugador(Integer jugadorId, ListaDeAmigosDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        if (dto.getJugador1() != null && dto.getJugador1().equals(jugadorId)) {
+            dto.setAmigoId(dto.getJugador2());
+            dto.setAmigoNombre(dto.getJugador2Nombre());
+        } else if (dto.getJugador2() != null && dto.getJugador2().equals(jugadorId)) {
+            dto.setAmigoId(dto.getJugador1());
+            dto.setAmigoNombre(dto.getJugador1Nombre());
+        }
+        return dto;
     }
 }

@@ -5,3 +5,4 @@ workspace:
 localResources:
   collections:
     - ..\APIS_PSOFT\server\docs\postman\RummiPlus-API-Demo.postman_collection.json
+    - ..\postman\collections\RummiPlus-API-Nuevo-Flujo.postman_collection.json

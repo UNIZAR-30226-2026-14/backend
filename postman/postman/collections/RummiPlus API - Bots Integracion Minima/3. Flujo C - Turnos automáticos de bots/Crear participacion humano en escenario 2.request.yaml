@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/participaciones"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "idJugador": {{human1Id}},
+      "idPartida": {{partidaId}},
+      "fichasActuales": 0,
+      "habilidadesActuales": ""
+    }
+order: 2000

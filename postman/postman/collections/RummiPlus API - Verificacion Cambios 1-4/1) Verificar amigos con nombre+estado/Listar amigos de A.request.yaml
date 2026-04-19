@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/amigos?jugadorId={{jugadorAId}}"
+method: GET
+queryParams:
+  jugadorId: "{{jugadorAId}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('GET amigos OK', ()=> pm.expect(pm.response.code).to.eql(200));
+
+      const arr=pm.response.json();
+
+      pm.test('Hay al menos 1 amistad', ()=>
+      pm.expect(arr.length).to.be.greaterThan(0));
+
+      const a=arr[0];
+
+      pm.test('Incluye estado', ()=> pm.expect(a.estado).to.exist);
+
+      pm.test('Incluye nombre amigo', ()=> pm.expect(a.amigoNombre ||
+      a.jugador2Nombre || a.jugador1Nombre).to.exist);
+    language: text/javascript
+order: 2000

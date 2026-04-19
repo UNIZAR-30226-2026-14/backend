@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/iniciar"
+method: POST
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Partida iniciada', function () {
+      pm.expect(pm.response.code).to.equal(200); });
+
+      const body = pm.response.json();
+
+      pm.test('Estado RUNNING o FINISHED', function () { pm.expect(['RUNNING',
+      'FINISHED']).to.include(body.estado); });
+    language: text/javascript
+order: 1000
