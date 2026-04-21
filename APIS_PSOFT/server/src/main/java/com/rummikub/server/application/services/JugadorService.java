@@ -2,20 +2,28 @@ package com.rummikub.server.application.services;
 
 import com.rummikub.server.api.dto.JugadorDTO;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
+import com.rummikub.server.infraestructure.jpa.entity.ListaDeAmigosEntity;
 import com.rummikub.server.infraestructure.jpa.mapper.Mapper;
 import com.rummikub.server.infraestructure.jpa.repository.JugadorRepository;
+import com.rummikub.server.infraestructure.jpa.repository.ListaDeAmigosRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 @Service
 public class JugadorService {
 
     private final JugadorRepository jugadorRepository;
+    private final ListaDeAmigosRepository listaDeAmigosRepository;
 
-    public JugadorService(JugadorRepository jugadorRepository) {
+    public JugadorService(
+            JugadorRepository jugadorRepository,
+            ListaDeAmigosRepository listaDeAmigosRepository) {
         this.jugadorRepository = jugadorRepository;
+        this.listaDeAmigosRepository = listaDeAmigosRepository;
     }
 
     public List<JugadorDTO> getAll() {
@@ -96,5 +104,33 @@ public class JugadorService {
             throw new NoSuchElementException("Jugador no encontrado: " + id);
         }
         jugadorRepository.deleteById(id);
+    }
+
+    public List<JugadorDTO> getFriendProfiles(Integer idJugador, String estado) {
+        if (!jugadorRepository.existsById(idJugador)) {
+            throw new NoSuchElementException("Jugador no encontrado: " + idJugador);
+        }
+
+        List<ListaDeAmigosEntity> relaciones = listaDeAmigosRepository.findByJugador1_IdOrJugador2_Id(idJugador, idJugador);
+        String estadoFiltro = estado == null ? null : estado.trim();
+
+        Set<Integer> friendIds = new LinkedHashSet<>();
+        for (ListaDeAmigosEntity relacion : relaciones) {
+            if (estadoFiltro != null && !estadoFiltro.isBlank()) {
+                String estadoActual = relacion.getEstado() == null ? "" : relacion.getEstado().trim();
+                if (!estadoActual.equalsIgnoreCase(estadoFiltro)) {
+                    continue;
+                }
+            }
+
+            Integer friendId = relacion.getJugador1().getId().equals(idJugador)
+                    ? relacion.getJugador2().getId()
+                    : relacion.getJugador1().getId();
+            friendIds.add(friendId);
+        }
+
+        return jugadorRepository.findAllById(friendIds).stream()
+                .map(Mapper::toDTO)
+                .toList();
     }
 }
