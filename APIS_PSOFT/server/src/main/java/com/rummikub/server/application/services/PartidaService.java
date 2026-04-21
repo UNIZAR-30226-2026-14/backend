@@ -4,6 +4,8 @@ import com.rummikub.server.api.dto.PartidaDTO;
 import com.rummikub.server.api.dto.bot.BotMoveDTO;
 import com.rummikub.server.api.dto.bot.BotMoveRequest;
 import com.rummikub.server.api.dto.bot.BotMoveResponse;
+import com.rummikub.server.api.dto.partida.MercadoItemDTO;
+import com.rummikub.server.api.dto.partida.MercadoParticipacionDTO;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionId;
@@ -24,6 +26,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,12 +46,25 @@ public class PartidaService {
     private static final int BOT_LEVEL = 5;
     private static final double BOT_RANDOMNESS = 0.20;
     private static final int MAX_AUTOMATED_BOT_TURNS = 16;
+    private static final int MARKET_OBJECTS_PER_PLAYER = 4;
+    private static final int MARKET_ITEM_STOCK = 1;
 
     private static final String ESTADO_WAITING = "WAITING";
     private static final String ESTADO_RUNNING = "RUNNING";
     private static final String ESTADO_FINISHED = "FINISHED";
 
     private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOK])(1[0-3]|[1-9])$");
+    private static final Pattern MARKET_OBJECT_PATTERN = Pattern.compile("^(obj[1-7])$", Pattern.CASE_INSENSITIVE);
+    private static final List<String> MARKET_OBJECT_CODES = List.of("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7");
+    private static final Map<String, Integer> MARKET_OBJECT_VALUES = Map.of(
+            "obj1", 10,
+            "obj2", 20,
+            "obj3", 30,
+            "obj4", 40,
+            "obj5", 50,
+            "obj6", 60,
+            "obj7", 70
+    );
 
     private final PartidaRepository partidaRepository;
     private final ParticipacionRepository participacionRepository;
@@ -92,6 +108,70 @@ public class PartidaService {
                 .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
         ensureDefaultState(partida);
         return Mapper.toDTO(partida);
+    }
+
+    @Transactional
+    public MercadoParticipacionDTO getMercadoJugador(Integer idPartida, Integer idJugador) {
+        PartidaEntity partida = partidaRepository.findById(idPartida)
+                .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
+        ensureDefaultState(partida);
+
+        ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
+        List<String> habilidadesCompradas = parsePurchasedObjectCodes(participacion.getHabilidadesActuales());
+        String serializedHabilidades = serializePurchasedObjectCodes(habilidadesCompradas);
+        if (!serializedHabilidades.equals(safe(participacion.getHabilidadesActuales()))) {
+            participacion.setHabilidadesActuales(serializedHabilidades);
+            participacionRepository.save(participacion);
+        }
+
+        LinkedHashMap<String, Integer> stockByCode = getOrCreateMarketStockByPlayer(partida, idJugador);
+        return buildMercadoParticipacionDTO(idPartida, idJugador, participacion.getJugador().getMonedas(), stockByCode,
+                habilidadesCompradas);
+    }
+
+    @Transactional
+    public MercadoParticipacionDTO comprarObjetoMercado(Integer idPartida, Integer idJugador, String codigoObjetoRaw) {
+        if (codigoObjetoRaw == null || codigoObjetoRaw.isBlank()) {
+            throw new IllegalArgumentException("codigoObjeto es obligatorio");
+        }
+
+        PartidaEntity partida = partidaRepository.findById(idPartida)
+                .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
+        ensureDefaultState(partida);
+
+        ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
+        String codigoObjeto = normalizeMarketObjectCode(codigoObjetoRaw);
+
+        LinkedHashMap<String, Integer> stockByCode = getOrCreateMarketStockByPlayer(partida, idJugador);
+        int stockActual = stockByCode.getOrDefault(codigoObjeto, 0);
+        if (stockActual <= 0) {
+            throw new IllegalStateException("El objeto " + codigoObjeto + " no esta disponible en tu mercado");
+        }
+
+        int coste = MARKET_OBJECT_VALUES.get(codigoObjeto);
+        JugadorEntity jugador = participacion.getJugador();
+        if (jugador.getMonedas() < coste) {
+            throw new IllegalStateException("No tienes monedas suficientes para comprar " + codigoObjeto);
+        }
+
+        jugador.setMonedas(jugador.getMonedas() - coste);
+        jugadorRepository.save(jugador);
+
+        stockByCode.put(codigoObjeto, stockActual - 1);
+        updateMarketStockByPlayer(partida, idJugador, stockByCode);
+
+        List<String> habilidadesCompradas = parsePurchasedObjectCodes(participacion.getHabilidadesActuales());
+        habilidadesCompradas.add(codigoObjeto);
+        participacion.setHabilidadesActuales(serializePurchasedObjectCodes(habilidadesCompradas));
+        participacionRepository.save(participacion);
+
+        return buildMercadoParticipacionDTO(
+                idPartida,
+                idJugador,
+                jugador.getMonedas(),
+                stockByCode,
+                habilidadesCompradas
+        );
     }
 
     @Transactional
@@ -386,6 +466,7 @@ public class PartidaService {
         }
 
         List<String> bag = createAndShuffleFullBag();
+        Map<Integer, LinkedHashMap<String, Integer>> marketByPlayer = new HashMap<>();
         for (int i = 0; i < participaciones.size(); i++) {
             ParticipacionEntity participacion = participaciones.get(i);
             participacion.setOrdenTurno(i);
@@ -393,11 +474,13 @@ public class PartidaService {
             List<String> hand = drawTiles(bag, INITIAL_HAND_SIZE);
             participacion.setManoActual(serializeTileList(hand));
             participacion.setFichasActuales(hand.size());
+            participacion.setHabilidadesActuales("");
+            marketByPlayer.put(participacion.getJugador().getId(), createRandomMarketStock());
         }
         participacionRepository.saveAll(participaciones);
 
         partida.setConjuntoMesa("");
-        partida.setMercado("");
+        partida.setMercado(serializePartidaMarket(marketByPlayer));
         partida.setBolsa(serializeTileList(bag));
         partida.setGanadorId(null);
         partida.setPuntuacionFinal("");
@@ -1344,6 +1427,36 @@ public class PartidaService {
         return tiles;
     }
 
+    private List<String> parsePurchasedObjectCodes(String encoded) {
+        List<String> codes = new ArrayList<>();
+        if (encoded == null || encoded.isBlank()) {
+            return codes;
+        }
+
+        String[] parts = encoded.split(",");
+        for (String rawPart : parts) {
+            String token = rawPart == null ? "" : rawPart.trim();
+            if (token.isEmpty()) {
+                continue;
+            }
+
+            int pipeIndex = token.indexOf('|');
+            if (pipeIndex > 0) {
+                token = token.substring(0, pipeIndex).trim();
+            }
+            int colonIndex = token.indexOf(':');
+            if (colonIndex > 0) {
+                token = token.substring(0, colonIndex).trim();
+            }
+
+            Matcher matcher = MARKET_OBJECT_PATTERN.matcher(token);
+            if (matcher.matches()) {
+                codes.add(matcher.group(1).toLowerCase(Locale.ROOT));
+            }
+        }
+        return codes;
+    }
+
     private List<List<String>> parseMesaGroups(String encoded) {
         List<List<String>> groups = new ArrayList<>();
         if (encoded == null || encoded.isBlank()) {
@@ -1381,6 +1494,260 @@ public class PartidaService {
             return "";
         }
         return String.join(",", tiles);
+    }
+
+    private String normalizeMarketObjectCode(String rawCode) {
+        if (rawCode == null || rawCode.isBlank()) {
+            throw new IllegalArgumentException("Codigo de objeto vacio");
+        }
+        String candidate = rawCode.trim().toLowerCase(Locale.ROOT);
+        Matcher matcher = MARKET_OBJECT_PATTERN.matcher(candidate);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Objeto de mercado invalido: " + rawCode);
+        }
+        return matcher.group(1).toLowerCase(Locale.ROOT);
+    }
+
+    private List<String> createRandomMarketObjectCodes() {
+        List<String> randomCodes = new ArrayList<>(MARKET_OBJECT_CODES);
+        Collections.shuffle(randomCodes);
+        return new ArrayList<>(randomCodes.subList(0, MARKET_OBJECTS_PER_PLAYER));
+    }
+
+    private LinkedHashMap<String, Integer> createRandomMarketStock() {
+        LinkedHashMap<String, Integer> stockByCode = new LinkedHashMap<>();
+        for (String code : createRandomMarketObjectCodes()) {
+            stockByCode.put(code, MARKET_ITEM_STOCK);
+        }
+        return stockByCode;
+    }
+
+    private LinkedHashMap<String, Integer> normalizeMarketStock(Map<String, Integer> rawStockByCode, boolean fillMissing) {
+        LinkedHashMap<String, Integer> normalized = new LinkedHashMap<>();
+        if (rawStockByCode != null) {
+            for (Map.Entry<String, Integer> entry : rawStockByCode.entrySet()) {
+                String codeRaw = entry.getKey();
+                if (codeRaw == null || codeRaw.isBlank()) {
+                    continue;
+                }
+
+                String code;
+                try {
+                    code = normalizeMarketObjectCode(codeRaw);
+                } catch (IllegalArgumentException ex) {
+                    continue;
+                }
+
+                if (normalized.containsKey(code)) {
+                    continue;
+                }
+                int units = entry.getValue() == null ? 0 : Math.max(entry.getValue(), 0);
+                normalized.put(code, units);
+                if (normalized.size() == MARKET_OBJECTS_PER_PLAYER) {
+                    break;
+                }
+            }
+        }
+
+        if (fillMissing && normalized.size() < MARKET_OBJECTS_PER_PLAYER) {
+            List<String> remainingCodes = new ArrayList<>(MARKET_OBJECT_CODES);
+            remainingCodes.removeAll(normalized.keySet());
+            Collections.shuffle(remainingCodes);
+
+            int missing = MARKET_OBJECTS_PER_PLAYER - normalized.size();
+            for (int i = 0; i < missing; i++) {
+                normalized.put(remainingCodes.get(i), MARKET_ITEM_STOCK);
+            }
+        }
+        return normalized;
+    }
+
+    private Map<Integer, LinkedHashMap<String, Integer>> parsePartidaMarket(String encoded) {
+        Map<Integer, LinkedHashMap<String, Integer>> marketByPlayer = new HashMap<>();
+        if (encoded == null || encoded.isBlank()) {
+            return marketByPlayer;
+        }
+
+        String[] playerSegments = encoded.split(";");
+        for (String rawSegment : playerSegments) {
+            String segment = rawSegment == null ? "" : rawSegment.trim();
+            if (segment.isEmpty()) {
+                continue;
+            }
+
+            int eqIndex = segment.indexOf('=');
+            if (eqIndex <= 0) {
+                continue;
+            }
+
+            String playerRaw = segment.substring(0, eqIndex).trim();
+            Integer playerId;
+            try {
+                playerId = Integer.parseInt(playerRaw);
+            } catch (NumberFormatException ex) {
+                continue;
+            }
+
+            LinkedHashMap<String, Integer> stockByCode = new LinkedHashMap<>();
+            String stockRaw = segment.substring(eqIndex + 1).trim();
+            if (!stockRaw.isEmpty()) {
+                String[] stockEntries = stockRaw.split(",");
+                for (String rawEntry : stockEntries) {
+                    String entry = rawEntry == null ? "" : rawEntry.trim();
+                    if (entry.isEmpty()) {
+                        continue;
+                    }
+
+                    String[] parts = entry.split("\\|", -1);
+                    String codeRaw = parts[0].trim();
+
+                    String code;
+                    try {
+                        code = normalizeMarketObjectCode(codeRaw);
+                    } catch (IllegalArgumentException ex) {
+                        continue;
+                    }
+
+                    int units = MARKET_ITEM_STOCK;
+                    if (parts.length > 1) {
+                        try {
+                            units = Math.max(Integer.parseInt(parts[1].trim()), 0);
+                        } catch (NumberFormatException ex) {
+                            units = MARKET_ITEM_STOCK;
+                        }
+                    }
+
+                    if (!stockByCode.containsKey(code)) {
+                        stockByCode.put(code, units);
+                    }
+                    if (stockByCode.size() == MARKET_OBJECTS_PER_PLAYER) {
+                        break;
+                    }
+                }
+            }
+            marketByPlayer.put(playerId, stockByCode);
+        }
+
+        return marketByPlayer;
+    }
+
+    private String serializePartidaMarket(Map<Integer, LinkedHashMap<String, Integer>> marketByPlayer) {
+        if (marketByPlayer == null || marketByPlayer.isEmpty()) {
+            return "";
+        }
+
+        List<Integer> playerIds = new ArrayList<>(marketByPlayer.keySet());
+        Collections.sort(playerIds);
+        List<String> encodedPlayers = new ArrayList<>();
+        for (Integer playerId : playerIds) {
+            Map<String, Integer> stockByCode = marketByPlayer.get(playerId);
+            if (stockByCode == null || stockByCode.isEmpty()) {
+                continue;
+            }
+
+            List<String> encodedStock = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : stockByCode.entrySet()) {
+                String code = entry.getKey();
+                if (!MARKET_OBJECT_VALUES.containsKey(code)) {
+                    continue;
+                }
+                int units = entry.getValue() == null ? 0 : Math.max(entry.getValue(), 0);
+                encodedStock.add(code + "|" + units);
+            }
+
+            if (!encodedStock.isEmpty()) {
+                encodedPlayers.add(playerId + "=" + String.join(",", encodedStock));
+            }
+        }
+        return String.join(";", encodedPlayers);
+    }
+
+    private LinkedHashMap<String, Integer> getOrCreateMarketStockByPlayer(PartidaEntity partida, Integer idJugador) {
+        Map<Integer, LinkedHashMap<String, Integer>> marketByPlayer = parsePartidaMarket(partida.getMercado());
+        LinkedHashMap<String, Integer> currentStock = marketByPlayer.get(idJugador);
+
+        LinkedHashMap<String, Integer> normalizedStock;
+        if (currentStock == null || currentStock.isEmpty()) {
+            normalizedStock = createRandomMarketStock();
+        } else {
+            normalizedStock = normalizeMarketStock(currentStock, true);
+        }
+
+        marketByPlayer.put(idJugador, normalizedStock);
+        String normalizedEncoded = serializePartidaMarket(marketByPlayer);
+        if (!normalizedEncoded.equals(safe(partida.getMercado()))) {
+            partida.setMercado(normalizedEncoded);
+            partidaRepository.save(partida);
+        }
+
+        return normalizedStock;
+    }
+
+    private void updateMarketStockByPlayer(PartidaEntity partida, Integer idJugador, Map<String, Integer> updatedStockByCode) {
+        Map<Integer, LinkedHashMap<String, Integer>> marketByPlayer = parsePartidaMarket(partida.getMercado());
+        marketByPlayer.put(idJugador, normalizeMarketStock(updatedStockByCode, false));
+        String encoded = serializePartidaMarket(marketByPlayer);
+        if (!encoded.equals(safe(partida.getMercado()))) {
+            partida.setMercado(encoded);
+            partidaRepository.save(partida);
+        }
+    }
+
+    private String serializePurchasedObjectCodes(List<String> purchasedCodes) {
+        if (purchasedCodes == null || purchasedCodes.isEmpty()) {
+            return "";
+        }
+
+        List<String> encoded = new ArrayList<>();
+        for (String codeRaw : purchasedCodes) {
+            if (codeRaw == null || codeRaw.isBlank()) {
+                continue;
+            }
+            try {
+                encoded.add(normalizeMarketObjectCode(codeRaw));
+            } catch (IllegalArgumentException ex) {
+                // Ignoramos codigos antiguos/no validos en datos legacy.
+            }
+        }
+        return String.join(",", encoded);
+    }
+
+    private MercadoParticipacionDTO buildMercadoParticipacionDTO(
+            Integer idPartida,
+            Integer idJugador,
+            int monedasJugador,
+            Map<String, Integer> stockByCode,
+            List<String> habilidadesCompradas) {
+        return MercadoParticipacionDTO.builder()
+                .idPartida(idPartida)
+                .idJugador(idJugador)
+                .monedasJugador(monedasJugador)
+                .objetosMercado(toMercadoItems(stockByCode))
+                .habilidadesCompradas(new ArrayList<>(habilidadesCompradas))
+                .build();
+    }
+
+    private List<MercadoItemDTO> toMercadoItems(Map<String, Integer> stockByCode) {
+        List<MercadoItemDTO> items = new ArrayList<>();
+        if (stockByCode == null || stockByCode.isEmpty()) {
+            return items;
+        }
+
+        for (Map.Entry<String, Integer> entry : stockByCode.entrySet()) {
+            String code = entry.getKey();
+            Integer value = MARKET_OBJECT_VALUES.get(code);
+            int units = entry.getValue() == null ? 0 : Math.max(entry.getValue(), 0);
+            if (value == null || units <= 0) {
+                continue;
+            }
+
+            items.add(MercadoItemDTO.builder()
+                    .codigo(code)
+                    .valor(value)
+                    .unidadesDisponibles(units)
+                    .build());
+        }
+        return items;
     }
 
     private String normalizeTile(String tileRaw) {

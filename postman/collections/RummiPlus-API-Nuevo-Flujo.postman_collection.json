@@ -67,6 +67,10 @@
                          "value":  ""
                      },
                      {
+                         "key":  "codigoObjetoMercado",
+                         "value":  "obj1"
+                     },
+                     {
                          "key":  "jugadaFinPartida",
                          "value":  "{\n  \"idJugador\": {{jugador1Id}},\n  \"grupos\": [[\"R1\", \"R2\", \"R3\"]]\n}"
                      },
@@ -147,10 +151,24 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"id\": {{jugador1Id}},\n  \"nombre\": \"{{jugador1Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugador1Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
                                                                },
                                                       "url":  "{{baseUrl}}/api/jugadores"
-                                                  }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set('jugador1Id', String(data.id));",
+                                                                                    "pm.test('ID jugador 1 recibido', function () { pm.expect(data.id).to.be.a('number'); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "Crear Jugador 2",
@@ -164,10 +182,24 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"id\": {{jugador2Id}},\n  \"nombre\": \"{{jugador2Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugador2Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
                                                                },
                                                       "url":  "{{baseUrl}}/api/jugadores"
-                                                  }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set('jugador2Id', String(data.id));",
+                                                                                    "pm.test('ID jugador 2 recibido', function () { pm.expect(data.id).to.be.a('number'); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "Crear Jugador 3",
@@ -181,10 +213,24 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"id\": {{jugador3Id}},\n  \"nombre\": \"{{jugador3Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugador3Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
                                                                },
                                                       "url":  "{{baseUrl}}/api/jugadores"
-                                                  }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set('jugador3Id', String(data.id));",
+                                                                                    "pm.test('ID jugador 3 recibido', function () { pm.expect(data.id).to.be.a('number'); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "Crear Jugador 4",
@@ -198,10 +244,24 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"id\": {{jugador4Id}},\n  \"nombre\": \"{{jugador4Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugador4Nombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
                                                                },
                                                       "url":  "{{baseUrl}}/api/jugadores"
-                                                  }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set('jugador4Id', String(data.id));",
+                                                                                    "pm.test('ID jugador 4 recibido', function () { pm.expect(data.id).to.be.a('number'); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "Listar Jugadores",
@@ -396,10 +456,24 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"idPartida\": {{partidaId}},\n  \"turno\": 0,\n  \"fecha\": \"2026-04-05\",\n  \"bolsa\": \"\",\n  \"conjuntoMesa\": \"\",\n  \"mercado\": \"\",\n  \"corriendo\": false\n}"
+                                                                   "raw":  "{\n  \"turno\": 0,\n  \"fecha\": \"2026-04-05\",\n  \"bolsa\": \"\",\n  \"conjuntoMesa\": \"\",\n  \"mercado\": \"\",\n  \"corriendo\": false\n}"
                                                                },
                                                       "url":  "{{baseUrl}}/api/partidas"
-                                                  }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set('partidaId', String(data.idPartida));",
+                                                                                    "pm.test('ID partida recibido', function () { pm.expect(data.idPartida).to.be.a('number'); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "Crear Participacion J1",
@@ -572,6 +646,85 @@
                                                                                     "  var data = pm.response.json();",
                                                                                     "  pm.expect(data.turno).to.eql(0);",
                                                                                     "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Mercado J1 - Consultar",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador1}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/mercado"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.test('Mercado devuelve objetos para el jugador', function () {",
+                                                                                    "  pm.expect(data.idJugador).to.eql(Number(pm.collectionVariables.get('jugador1Id')));",
+                                                                                    "  pm.expect(data.objetosMercado).to.be.an('array');",
+                                                                                    "  pm.expect(data.objetosMercado.length).to.be.above(0);",
+                                                                                    "});",
+                                                                                    "if (data.objetosMercado && data.objetosMercado.length > 0) {",
+                                                                                    "  pm.collectionVariables.set('codigoObjetoMercado', data.objetosMercado[0].codigo);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Mercado J1 - Comprar 1 objeto",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{tokenJugador1}}"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"codigoObjeto\": \"{{codigoObjetoMercado}}\"\n}"
+                                                               },
+                                                      "url":  "{{baseUrl}}/api/partidas/{{partidaId}}/mercado/comprar"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test('Status 200 o 409', function () {",
+                                                                                    "  pm.expect([200, 409]).to.include(pm.response.code);",
+                                                                                    "});",
+                                                                                    "if (pm.response.code === 200) {",
+                                                                                    "  var data = pm.response.json();",
+                                                                                    "  pm.test('Compra correcta: aparece en habilidades compradas', function () {",
+                                                                                    "    pm.expect(data.habilidadesCompradas).to.be.an('array');",
+                                                                                    "    pm.expect(data.habilidadesCompradas).to.include(pm.collectionVariables.get('codigoObjetoMercado'));",
+                                                                                    "  });",
+                                                                                    "} else {",
+                                                                                    "  var err = pm.response.json();",
+                                                                                    "  pm.test('Sin monedas devuelve conflicto de compra', function () {",
+                                                                                    "    pm.expect(err.message).to.include('monedas');",
+                                                                                    "  });",
+                                                                                    "}"
                                                                                 ]
                                                                    }
                                                     }
@@ -1177,7 +1330,6 @@
                                   }
                               ]
                  },
-                 null,
                  {
                      "name":  "9. Escenario Solo (Mesa + FINISHED)",
                      "item":  [
@@ -1203,10 +1355,24 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"id\": {{jugadorSoloId}},\n  \"nombre\": \"{{jugadorSoloNombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
+                                                                   "raw":  "{\n  \"nombre\": \"{{jugadorSoloNombre}}\",\n  \"contrasena\": \"{{passwordComun}}\"\n}"
                                                                },
                                                       "url":  "{{baseUrl}}/api/jugadores"
-                                                  }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set('jugadorSoloId', String(data.id));",
+                                                                                    "pm.test('ID jugador solo recibido', function () { pm.expect(data.id).to.be.a('number'); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "Solo - Login",
@@ -1251,10 +1417,24 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"idPartida\": {{partidaSoloId}},\n  \"turno\": 0,\n  \"fecha\": \"2026-04-05\",\n  \"bolsa\": \"\",\n  \"conjuntoMesa\": \"\",\n  \"mercado\": \"\",\n  \"corriendo\": false\n}"
+                                                                   "raw":  "{\n  \"turno\": 0,\n  \"fecha\": \"2026-04-05\",\n  \"bolsa\": \"\",\n  \"conjuntoMesa\": \"\",\n  \"mercado\": \"\",\n  \"corriendo\": false\n}"
                                                                },
                                                       "url":  "{{baseUrl}}/api/partidas"
-                                                  }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "var data = pm.response.json();",
+                                                                                    "pm.collectionVariables.set('partidaSoloId', String(data.idPartida));",
+                                                                                    "pm.test('ID partida solo recibido', function () { pm.expect(data.idPartida).to.be.a('number'); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "Solo - Crear Participacion",

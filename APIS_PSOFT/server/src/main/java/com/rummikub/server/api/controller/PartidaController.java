@@ -1,7 +1,9 @@
 package com.rummikub.server.api.controller;
 
 import com.rummikub.server.api.dto.PartidaDTO;
+import com.rummikub.server.api.dto.partida.ComprarMercadoRequest;
 import com.rummikub.server.api.dto.partida.CreatePartidaRequest;
+import com.rummikub.server.api.dto.partida.MercadoParticipacionDTO;
 import com.rummikub.server.api.dto.partida.PlayAdvancedTurnRequest;
 import com.rummikub.server.api.dto.partida.PlayTurnRequest;
 import com.rummikub.server.api.dto.partida.TurnActionRequest;
@@ -128,6 +130,23 @@ public class PartidaController {
                 request.getExtensionTiles(),
                 request.getNewBoard()
         );
+    }
+
+    @GetMapping("/{id}/mercado")
+    public MercadoParticipacionDTO getMercadoJugador(
+            @PathVariable Integer id,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        return partidaService.getMercadoJugador(id, idJugador);
+    }
+
+    @PostMapping("/{id}/mercado/comprar")
+    public MercadoParticipacionDTO comprarObjetoMercado(
+            @PathVariable Integer id,
+            @Valid @RequestBody ComprarMercadoRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        return partidaService.comprarObjetoMercado(id, idJugador, request.getCodigoObjeto());
     }
 
     @PostMapping("/{id}/iniciar")
