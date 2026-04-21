@@ -103,6 +103,8 @@ Para endpoints de turno/jugada:
 - `GET /api/jugadores`
 - `POST /api/jugadores`
 - `PATCH /api/jugadores/{id}/perfil`
+- `GET /api/jugadores/{id}/amigos/perfiles`
+- `GET /api/jugadores/{id}/amigos/perfiles?estado=ACEPTADO`
 - `GET /api/amigos`
 - `POST /api/amigos`
 - `PATCH /api/amigos/{jugadorId}/{amigoId}/estado`
