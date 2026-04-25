@@ -19,9 +19,9 @@ public class Mapper {
                 .idPartida(part.getIdPartida())
                 .turno(part.getTurno())
                 .fecha(part.getFecha())
-                .bolsa(part.getBolsa())
+                .bolsa(normalizeSerializedTiles(part.getBolsa()))
                 .mercado(part.getMercado())
-                .conjuntoMesa(part.getConjuntoMesa())
+                .conjuntoMesa(normalizeSerializedTiles(part.getConjuntoMesa()))
                 .turnoInicio(part.getTurnoInicio())
                 .estado(part.getEstado())
                 .ganadorId(part.getGanadorId())
@@ -54,9 +54,9 @@ public class Mapper {
             return null;
         }
         return ListaDeAmigosDTO.builder()
-                .jugador1(lis.getJugador1().getId())
+                .jugador1Id(lis.getJugador1().getId())
                 .jugador1Nombre(lis.getJugador1().getNombre())
-                .jugador2(lis.getJugador2().getId())
+                .jugador2Id(lis.getJugador2().getId())
                 .jugador2Nombre(lis.getJugador2().getNombre())
                 .fecha(lis.getFecha() != null ? lis.getFecha().toString() : null)
                 .estado(lis.getEstado())
@@ -69,11 +69,34 @@ public class Mapper {
         }
         return ParticipacionDTO.builder()
                 .idJugador(participacion.getJugador().getId())
+                .jugadorNombre(participacion.getJugador().getNombre())
+                .jugadorUrlImgPerfil(participacion.getJugador().getUrlImgPerfil())
                 .idPartida(participacion.getPartida().getIdPartida())
                 .fichasActuales(participacion.getFichasActuales())
                 .habilidadesActuales(participacion.getHabilidadesActuales())
-                .manoActual(participacion.getManoActual())
+                .manoActual(normalizeSerializedTiles(participacion.getManoActual()))
                 .ordenTurno(participacion.getOrdenTurno())
                 .build();
+    }
+
+    private static String normalizeSerializedTiles(String encoded) {
+        if (encoded == null || encoded.isBlank()) {
+            return "";
+        }
+
+        String[] groups = encoded.split(";", -1);
+        for (int i = 0; i < groups.length; i++) {
+            String[] tiles = groups[i].split(",", -1);
+            for (int j = 0; j < tiles.length; j++) {
+                String token = tiles[j].trim().toUpperCase();
+                if ("J1".equals(token) || "J2".equals(token) || "J".equals(token)) {
+                    tiles[j] = "J*";
+                } else {
+                    tiles[j] = token;
+                }
+            }
+            groups[i] = String.join(",", tiles);
+        }
+        return String.join(";", groups);
     }
 }

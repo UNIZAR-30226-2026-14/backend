@@ -12,9 +12,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @Builder
 public class ListaDeAmigosDTO {
-    private Integer jugador1;
+    private Integer jugador1Id;
     private String jugador1Nombre;
-    private Integer jugador2;
+    private Integer jugador2Id;
     private String jugador2Nombre;
     private Integer amigoId;
     private String amigoNombre;

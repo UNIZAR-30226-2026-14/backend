@@ -48,6 +48,7 @@ public class PartidaService {
     private static final int MAX_AUTOMATED_BOT_TURNS = 16;
     private static final int MARKET_OBJECTS_PER_PLAYER = 4;
     private static final int MARKET_ITEM_STOCK = 1;
+    private static final String JOKER_CANONICAL = "J*";
 
     private static final String ESTADO_WAITING = "WAITING";
     private static final String ESTADO_RUNNING = "RUNNING";
@@ -925,14 +926,10 @@ public class PartidaService {
 
     private String resolveIaTileForHand(String iaTile, Map<String, Integer> handCount) {
         String normalizedIa = normalizeIaTile(iaTile);
-        if ("J*".equals(normalizedIa)) {
-            if (handCount.getOrDefault("J1", 0) > 0) {
-                handCount.put("J1", handCount.get("J1") - 1);
-                return "J1";
-            }
-            if (handCount.getOrDefault("J2", 0) > 0) {
-                handCount.put("J2", handCount.get("J2") - 1);
-                return "J2";
+        if (JOKER_CANONICAL.equals(normalizedIa)) {
+            String consumed = consumeAnyJoker(handCount);
+            if (consumed != null) {
+                return consumed;
             }
             throw new IllegalStateException("La IA intento usar comodin sin tenerlo en mano");
         }
@@ -948,14 +945,10 @@ public class PartidaService {
 
     private String resolveIaTileFromPool(String iaTile, Map<String, Integer> available) {
         String normalizedIa = normalizeIaTile(iaTile);
-        if ("J*".equals(normalizedIa)) {
-            if (available.getOrDefault("J1", 0) > 0) {
-                available.put("J1", available.get("J1") - 1);
-                return "J1";
-            }
-            if (available.getOrDefault("J2", 0) > 0) {
-                available.put("J2", available.get("J2") - 1);
-                return "J2";
+        if (JOKER_CANONICAL.equals(normalizedIa)) {
+            String consumed = consumeAnyJoker(available);
+            if (consumed != null) {
+                return consumed;
             }
             throw new IllegalStateException("La IA uso mas comodines de los disponibles");
         }
@@ -988,7 +981,7 @@ public class PartidaService {
     private String toIaTile(String backendTile) {
         String normalized = normalizeTile(backendTile);
         if (isJoker(normalized)) {
-            return "J*";
+            return JOKER_CANONICAL;
         }
         char color = parseColor(normalized);
         int value = parseValue(normalized);
@@ -1000,8 +993,8 @@ public class PartidaService {
             throw new IllegalStateException("La IA devolvio una ficha vacia");
         }
         String t = iaTile.trim().toUpperCase();
-        if ("J".equals(t) || "J*".equals(t)) {
-            return "J*";
+        if ("J".equals(t) || JOKER_CANONICAL.equals(t)) {
+            return JOKER_CANONICAL;
         }
         if (!t.matches("^[RBOK](0[1-9]|1[0-3])$")) {
             throw new IllegalStateException("Formato de ficha IA invalido: " + iaTile);
@@ -1010,8 +1003,8 @@ public class PartidaService {
     }
 
     private String toBackendTile(String iaTile) {
-        if ("J*".equals(iaTile) || "J".equals(iaTile)) {
-            return "J1";
+        if (JOKER_CANONICAL.equals(iaTile) || "J".equals(iaTile)) {
+            return JOKER_CANONICAL;
         }
         char color = iaTile.charAt(0);
         int value = Integer.parseInt(iaTile.substring(1));
@@ -1229,8 +1222,8 @@ public class PartidaService {
             }
         }
 
-        bag.add("J1");
-        bag.add("J2");
+        bag.add(JOKER_CANONICAL);
+        bag.add(JOKER_CANONICAL);
         Collections.shuffle(bag);
         return bag;
     }
@@ -1421,7 +1414,7 @@ public class PartidaService {
         for (String raw : parts) {
             String tile = raw == null ? "" : raw.trim();
             if (!tile.isEmpty()) {
-                tiles.add(tile);
+                tiles.add(normalizeTileTokenForStorage(tile));
             }
         }
         return tiles;
@@ -1755,8 +1748,8 @@ public class PartidaService {
             throw new IllegalArgumentException("Ficha vacia en jugada");
         }
         String tile = tileRaw.trim().toUpperCase();
-        if ("J1".equals(tile) || "J2".equals(tile)) {
-            return tile;
+        if ("J".equals(tile) || JOKER_CANONICAL.equals(tile) || "J1".equals(tile) || "J2".equals(tile)) {
+            return JOKER_CANONICAL;
         }
 
         Matcher matcher = TILE_PATTERN.matcher(tile);
@@ -1767,7 +1760,34 @@ public class PartidaService {
     }
 
     private boolean isJoker(String tile) {
-        return "J1".equals(tile) || "J2".equals(tile);
+        if (tile == null || tile.isBlank()) {
+            return false;
+        }
+        String normalized = tile.trim().toUpperCase();
+        return JOKER_CANONICAL.equals(normalized) || "J1".equals(normalized) || "J2".equals(normalized) || "J".equals(normalized);
+    }
+
+    private String consumeAnyJoker(Map<String, Integer> countMap) {
+        List<String> jokerKeys = List.of(JOKER_CANONICAL, "J1", "J2", "J");
+        for (String key : jokerKeys) {
+            int current = countMap.getOrDefault(key, 0);
+            if (current > 0) {
+                countMap.put(key, current - 1);
+                return key;
+            }
+        }
+        return null;
+    }
+
+    private String normalizeTileTokenForStorage(String rawToken) {
+        String token = rawToken == null ? "" : rawToken.trim();
+        if (token.isEmpty()) {
+            return "";
+        }
+        if (isJoker(token)) {
+            return JOKER_CANONICAL;
+        }
+        return token.toUpperCase(Locale.ROOT);
     }
 
     private char parseColor(String tile) {

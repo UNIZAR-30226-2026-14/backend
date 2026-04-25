@@ -103,11 +103,11 @@ public class ListaDeAmigosService {
         if (dto == null) {
             return null;
         }
-        if (dto.getJugador1() != null && dto.getJugador1().equals(jugadorId)) {
-            dto.setAmigoId(dto.getJugador2());
+        if (dto.getJugador1Id() != null && dto.getJugador1Id().equals(jugadorId)) {
+            dto.setAmigoId(dto.getJugador2Id());
             dto.setAmigoNombre(dto.getJugador2Nombre());
-        } else if (dto.getJugador2() != null && dto.getJugador2().equals(jugadorId)) {
-            dto.setAmigoId(dto.getJugador1());
+        } else if (dto.getJugador2Id() != null && dto.getJugador2Id().equals(jugadorId)) {
+            dto.setAmigoId(dto.getJugador1Id());
             dto.setAmigoNombre(dto.getJugador1Nombre());
         }
         return dto;

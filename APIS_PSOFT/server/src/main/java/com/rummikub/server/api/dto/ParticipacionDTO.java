@@ -13,6 +13,8 @@ import lombok.Setter;
 @Builder
 public class ParticipacionDTO {
     private Integer idJugador;
+    private String jugadorNombre;
+    private String jugadorUrlImgPerfil;
     private Integer idPartida;
     private int fichasActuales;
     private String habilidadesActuales;
