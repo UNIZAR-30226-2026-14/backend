@@ -106,6 +106,7 @@ Para endpoints de turno/jugada:
 - `GET /api/jugadores/{id}/amigos/perfiles`
 - `GET /api/jugadores/{id}/amigos/perfiles?estado=ACEPTADO`
 - `GET /api/amigos`
+    - tiene campos amigo1 y amigo2, el 1 es el que envía la solicitud 
 - `POST /api/amigos`
 - `PATCH /api/amigos/{jugadorId}/{amigoId}/estado`
 - `DELETE /api/admin/wipe` (unico DELETE)
