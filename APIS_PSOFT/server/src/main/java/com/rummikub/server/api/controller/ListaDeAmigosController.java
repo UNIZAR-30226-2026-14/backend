@@ -6,7 +6,9 @@ import com.rummikub.server.api.dto.listaamigos.UpdateEstadoAmistadRequest;
 import com.rummikub.server.application.services.ListaDeAmigosService;
 import jakarta.validation.Valid;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -55,5 +57,11 @@ public class ListaDeAmigosController {
     @PatchMapping("/{jugadorId}/{amigoId}/estado")
     public ListaDeAmigosDTO updateEstado(@PathVariable Integer jugadorId, @PathVariable Integer amigoId, @Valid @RequestBody UpdateEstadoAmistadRequest request) {
         return listaDeAmigosService.updateEstado(jugadorId, amigoId, request.getEstado());
+    }
+
+    @DeleteMapping("/{jugadorId}/{amigoId}")
+    public ResponseEntity<Void> delete(@PathVariable Integer jugadorId, @PathVariable Integer amigoId) {
+        listaDeAmigosService.delete(jugadorId, amigoId);
+        return ResponseEntity.noContent().build();
     }
 }
