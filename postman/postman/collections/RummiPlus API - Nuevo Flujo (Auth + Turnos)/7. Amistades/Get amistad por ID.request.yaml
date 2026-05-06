@@ -3,11 +3,9 @@ url: "{{baseUrl}}/api/amigos/{{jugador1Id}}/{{jugador2Id}}"
 method: GET
 scripts:
   - type: afterResponse
-    code: >-
+    code: |-
       pm.test('Status 200', function () { pm.response.to.have.status(200); });
-
       var data = pm.response.json();
-
       pm.test('Pareja correcta', function () {
         pm.expect(data.jugador1).to.eql(Number(pm.collectionVariables.get('jugador1Id')));
         pm.expect(data.jugador2).to.eql(Number(pm.collectionVariables.get('jugador2Id')));

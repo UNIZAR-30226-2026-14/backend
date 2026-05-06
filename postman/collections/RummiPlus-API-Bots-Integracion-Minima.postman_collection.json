@@ -24,7 +24,7 @@
     }
   ],
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "baseUrl", "value": "https://localhost:8443" },
     { "key": "runId", "value": "" },
     { "key": "today", "value": "" },
     { "key": "human1Name", "value": "humano_{{runId}}" },

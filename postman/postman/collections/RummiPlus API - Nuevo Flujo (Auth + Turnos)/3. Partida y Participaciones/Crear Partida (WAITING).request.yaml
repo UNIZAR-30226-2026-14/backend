@@ -7,7 +7,6 @@ body:
   type: text
   content: |-
     {
-      "idPartida": {{partidaId}},
       "turno": 0,
       "fecha": "2026-04-05",
       "bolsa": "",
@@ -15,4 +14,12 @@ body:
       "mercado": "",
       "corriendo": false
     }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });
+      var data = pm.response.json();
+      pm.collectionVariables.set('partidaId', String(data.idPartida));
+      pm.test('ID partida recibido', function () { pm.expect(data.idPartida).to.be.a('number'); });
+    language: text/javascript
 order: 1000

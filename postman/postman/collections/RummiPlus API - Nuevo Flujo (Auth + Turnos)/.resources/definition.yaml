@@ -1,8 +1,7 @@
 $kind: collection
-description: "Coleccion nueva para validar el flujo actualizado: auth, inicio de
-  partida, participaciones, turnos y cierre de sesion."
+description: "Coleccion nueva para validar el flujo actualizado: auth, inicio de partida, participaciones, turnos y cierre de sesion."
 variables:
-  baseUrl: http://localhost:8080
+  baseUrl: https://localhost:8443
   partidaId: "7001"
   jugador1Id: "201"
   jugador2Id: "202"
@@ -17,6 +16,7 @@ variables:
   tokenJugador2: ""
   tokenJugador3: ""
   tokenJugador4: ""
+  codigoObjetoMercado: obj1
   jugadaFinPartida: |-
     {
       "idJugador": {{jugador1Id}},

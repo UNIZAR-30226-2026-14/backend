@@ -3,11 +3,9 @@ url: "{{baseUrl}}/api/participaciones/{{jugador1Id}}/{{partidaId}}"
 method: GET
 scripts:
   - type: afterResponse
-    code: >-
+    code: |-
       pm.test('Status 200', function () { pm.response.to.have.status(200); });
-
       var data = pm.response.json();
-
       pm.test('IDs correctos', function () {
         pm.expect(data.idJugador).to.eql(Number(pm.collectionVariables.get('jugador1Id')));
         pm.expect(data.idPartida).to.eql(Number(pm.collectionVariables.get('partidaId')));

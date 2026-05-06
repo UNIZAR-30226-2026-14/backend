@@ -9,10 +9,8 @@ body:
   content: "{{playPayloadSolo}}"
 scripts:
   - type: afterResponse
-    code: >-
-      if (pm.response.code === 200)
-      pm.collectionVariables.set('jugadaExitosaSolo','true');
-
+    code: |-
+      if (pm.response.code === 200) pm.collectionVariables.set('jugadaExitosaSolo','true');
       pm.test('Respuesta esperada (200/400/409)', function () {
         pm.expect([200,400,409]).to.include(pm.response.code);
       });

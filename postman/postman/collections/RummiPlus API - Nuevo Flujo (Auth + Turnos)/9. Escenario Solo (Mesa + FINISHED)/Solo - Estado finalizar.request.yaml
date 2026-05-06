@@ -3,15 +3,12 @@ url: "{{baseUrl}}/api/partidas/{{partidaSoloId}}"
 method: GET
 scripts:
   - type: afterResponse
-    code: >-
+    code: |-
       pm.test('Status 200', function () { pm.response.to.have.status(200); });
-
       const data = pm.response.json();
-
       pm.test('Estado valido', function () {
         pm.expect(['WAITING','RUNNING','FINISHED']).to.include(data.estado);
       });
-
       if (data.estado === 'FINISHED'){
         pm.test('FINISHED trae ganador/puntuacion', function () {
           pm.expect(data.ganadorId).to.eql(Number(pm.collectionVariables.get('jugadorSoloId')));

@@ -2,7 +2,12 @@
 
 ## 1. Base URL
 
-- `http://localhost:8080`
+- `https://localhost:8443`
+
+Nota:
+
+- La API ahora arranca con HTTPS directo en Spring Boot.
+- El certificado es local/autofirmado, asi que navegador y Postman pueden avisar la primera vez.
 
 ## 2. Arranque rapido (API + BD Docker)
 
@@ -34,6 +39,12 @@ Desde `APIS_PSOFT/server`:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
+```
+
+La API quedara accesible en:
+
+```text
+https://localhost:8443
 ```
 
 ## 3. Conexion DBeaver (tu base local/docker)
@@ -71,6 +82,22 @@ Luego pulsa `Test Connection` y `Finish`.
 Para endpoints de turno/jugada:
 
 - Header obligatorio: `Authorization: Bearer <token>`
+
+## 5.1 Cambio de HTTP a HTTPS
+
+Antes:
+
+```text
+http://localhost:8080
+```
+
+Ahora:
+
+```text
+https://localhost:8443
+```
+
+Las peticiones JSON no cambian; solo cambia el esquema (`https`) y el puerto (`8443`).
 
 ## 6. Endpoints de juego
 

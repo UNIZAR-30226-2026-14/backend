@@ -7,8 +7,15 @@ body:
   type: text
   content: |-
     {
-      "id": {{jugador4Id}},
       "nombre": "{{jugador4Nombre}}",
       "contrasena": "{{passwordComun}}"
     }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });
+      var data = pm.response.json();
+      pm.collectionVariables.set('jugador4Id', String(data.id));
+      pm.test('ID jugador 4 recibido', function () { pm.expect(data.id).to.be.a('number'); });
+    language: text/javascript
 order: 4000

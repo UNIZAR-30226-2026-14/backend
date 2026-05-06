@@ -11,12 +11,9 @@ body:
     }
 scripts:
   - type: afterResponse
-    code: >-
+    code: |-
       pm.test('Status 200', function () { pm.response.to.have.status(200); });
-
       var data = pm.response.json();
-
-      pm.test('Estado actualizado', function () {
-      pm.expect(data.estado).to.eql('ACEPTADO'); });
+      pm.test('Estado actualizado', function () { pm.expect(data.estado).to.eql('ACEPTADO'); });
     language: text/javascript
 order: 4000

@@ -8,7 +8,7 @@
     "variable":  [
                      {
                          "key":  "baseUrl",
-                         "value":  "http://localhost:8080"
+                         "value":  "https://localhost:8443"
                      },
                      {
                          "key":  "jugador1Id",

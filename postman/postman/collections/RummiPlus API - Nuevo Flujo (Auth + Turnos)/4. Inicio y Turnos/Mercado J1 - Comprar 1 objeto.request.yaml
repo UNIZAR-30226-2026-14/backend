@@ -1,0 +1,32 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/mercado/comprar"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{tokenJugador1}}
+body:
+  type: text
+  content: |-
+    {
+      "codigoObjeto": "{{codigoObjetoMercado}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200 o 409', function () {
+        pm.expect([200, 409]).to.include(pm.response.code);
+      });
+      if (pm.response.code === 200) {
+        var data = pm.response.json();
+        pm.test('Compra correcta: aparece en habilidades compradas', function () {
+          pm.expect(data.habilidadesCompradas).to.be.an('array');
+          pm.expect(data.habilidadesCompradas).to.include(pm.collectionVariables.get('codigoObjetoMercado'));
+        });
+      } else {
+        var err = pm.response.json();
+        pm.test('Sin monedas devuelve conflicto de compra', function () {
+          pm.expect(err.message).to.include('monedas');
+        });
+      }
+    language: text/javascript
+order: 4000

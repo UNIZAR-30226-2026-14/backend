@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/partidas/{{partidaId}}/mercado"
+method: GET
+headers:
+  Authorization: Bearer {{tokenJugador1}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', function () { pm.response.to.have.status(200); });
+      var data = pm.response.json();
+      pm.test('Mercado devuelve objetos para el jugador', function () {
+        pm.expect(data.idJugador).to.eql(Number(pm.collectionVariables.get('jugador1Id')));
+        pm.expect(data.objetosMercado).to.be.an('array');
+        pm.expect(data.objetosMercado.length).to.be.above(0);
+      });
+      if (data.objetosMercado && data.objetosMercado.length > 0) {
+        pm.collectionVariables.set('codigoObjetoMercado', data.objetosMercado[0].codigo);
+      }
+    language: text/javascript
+order: 3000

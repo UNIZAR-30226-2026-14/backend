@@ -12,12 +12,9 @@ body:
     }
 scripts:
   - type: afterResponse
-    code: >-
+    code: |-
       pm.test('Status 200', function () { pm.response.to.have.status(200); });
-
       var data = pm.response.json();
-
-      pm.test('Turno esperado: 1', function () {
-      pm.expect(data.turno).to.eql(1); });
+      pm.test('Turno esperado: 1', function () { pm.expect(data.turno).to.eql(1); });
     language: text/javascript
 order: 2000
