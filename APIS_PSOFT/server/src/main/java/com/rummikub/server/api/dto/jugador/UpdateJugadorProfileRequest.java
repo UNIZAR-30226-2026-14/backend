@@ -1,5 +1,6 @@
 package com.rummikub.server.api.dto.jugador;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Size;
 
 public class UpdateJugadorProfileRequest {
@@ -7,7 +8,8 @@ public class UpdateJugadorProfileRequest {
     private String nombre;
 
     @Size(max = 500, message = "La URL de perfil no puede superar 500 caracteres")
-    private String urlImgPerfil;
+    @JsonAlias("urlImgPerfil")
+    private String imagenPerfil;
 
     @Size(max = 120, message = "skinFichas no puede superar 120 caracteres")
     private String skinFichas;
@@ -23,12 +25,12 @@ public class UpdateJugadorProfileRequest {
         this.nombre = nombre;
     }
 
-    public String getUrlImgPerfil() {
-        return urlImgPerfil;
+    public String getImagenPerfil() {
+        return imagenPerfil;
     }
 
-    public void setUrlImgPerfil(String urlImgPerfil) {
-        this.urlImgPerfil = urlImgPerfil;
+    public void setImagenPerfil(String imagenPerfil) {
+        this.imagenPerfil = imagenPerfil;
     }
 
     public String getSkinFichas() {

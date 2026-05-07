@@ -19,6 +19,8 @@ public class CreatePartidaRequest {
     @Size(max = 5000, message = "El conjuntoMesa supera el tamano permitido")
     private String conjuntoMesa;
 
+    private Boolean modoArcade;
+
     private boolean corriendo;
 
     public int getTurno() {
@@ -67,5 +69,13 @@ public class CreatePartidaRequest {
 
     public void setConjuntoMesa(String conjuntoMesa) {
         this.conjuntoMesa = conjuntoMesa;
+    }
+
+    public Boolean getModoArcade() {
+        return modoArcade;
+    }
+
+    public void setModoArcade(Boolean modoArcade) {
+        this.modoArcade = modoArcade;
     }
 }

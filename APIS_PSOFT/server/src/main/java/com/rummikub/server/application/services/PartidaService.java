@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,6 +49,7 @@ public class PartidaService {
     private static final int MAX_AUTOMATED_BOT_TURNS = 16;
     private static final int MARKET_OBJECTS_PER_PLAYER = 4;
     private static final int MARKET_ITEM_STOCK = 1;
+    private static final int INACTIVITY_LIMIT_TURNS = 2;
     private static final String JOKER_CANONICAL = "J*";
 
     private static final String ESTADO_WAITING = "WAITING";
@@ -66,6 +68,13 @@ public class PartidaService {
             "obj5", 50,
             "obj6", 60,
             "obj7", 70
+    );
+    private static final List<String> ARCADE_EVENTS = List.of(
+            "LLUVIA_DORADA",
+            "CAMBIO_DE_COLOR",
+            "TURNO_DOBLE",
+            "ROBO_EXTRA",
+            "BLOQUEO_MERCADO"
     );
 
     private final PartidaRepository partidaRepository;
@@ -119,6 +128,7 @@ public class PartidaService {
         ensureDefaultState(partida);
 
         ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
+        validateArcadeModeForMarket(partida);
         List<String> habilidadesCompradas = parsePurchasedObjectCodes(participacion.getHabilidadesActuales());
         String serializedHabilidades = serializePurchasedObjectCodes(habilidadesCompradas);
         if (!serializedHabilidades.equals(safe(participacion.getHabilidadesActuales()))) {
@@ -140,6 +150,7 @@ public class PartidaService {
         PartidaEntity partida = partidaRepository.findById(idPartida)
                 .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
         ensureDefaultState(partida);
+        validateArcadeModeForMarket(partida);
 
         ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
         String codigoObjeto = normalizeMarketObjectCode(codigoObjetoRaw);
@@ -184,6 +195,11 @@ public class PartidaService {
         partida.setBolsa(safe(dto.getBolsa()));
         partida.setMercado(safe(dto.getMercado()));
         partida.setConjuntoMesa(safe(dto.getConjuntoMesa()));
+        partida.setEventoActual("");
+        partida.setModoArcade(Boolean.TRUE.equals(dto.getModoArcade()));
+        if (!partida.isModoArcade()) {
+            partida.setMercado("");
+        }
         partida.setTurnoInicio(null);
         partida.setGanadorId(null);
         partida.setPuntuacionFinal("");
@@ -218,6 +234,13 @@ public class PartidaService {
         partida.setBolsa(safe(dto.getBolsa()));
         partida.setMercado(safe(dto.getMercado()));
         partida.setConjuntoMesa(safe(dto.getConjuntoMesa()));
+        if (dto.getModoArcade() != null) {
+            partida.setModoArcade(dto.getModoArcade());
+        }
+        if (!partida.isModoArcade()) {
+            partida.setMercado("");
+            partida.setEventoActual("");
+        }
         partida.setCorriendo(willRun);
 
         if (ESTADO_FINISHED.equals(partida.getEstado()) && willRun) {
@@ -337,6 +360,7 @@ public class PartidaService {
             PartidaEntity partida = mustGetRunningPartida(idPartida);
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
             validatePlayerTurn(partida, participacion);
+            registerInactiveTurn(participacion);
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
             return botUpdated == null ? updated : botUpdated;
@@ -364,9 +388,37 @@ public class PartidaService {
             participacionRepository.save(participacion);
 
             partida.setBolsa(serializeTileList(bag));
+            registerInactiveTurn(participacion);
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
             PartidaDTO result = botUpdated == null ? updated : botUpdated;
+            result.setFichaRobada(drawnTile);
+            return result;
+        }
+    }
+
+    @Transactional
+    public PartidaDTO robarSinPasarTurno(Integer idPartida, Integer idJugador) {
+        synchronized (turnMutex) {
+            PartidaEntity partida = mustGetRunningPartida(idPartida);
+            ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
+            validatePlayerTurn(partida, participacion);
+
+            List<String> bag = parseTileList(partida.getBolsa());
+            if (bag.isEmpty()) {
+                throw new IllegalStateException("No quedan fichas en la bolsa");
+            }
+
+            String drawnTile = bag.remove(0);
+            List<String> hand = parseTileList(participacion.getManoActual());
+            hand.add(drawnTile);
+
+            participacion.setManoActual(serializeTileList(hand));
+            participacion.setFichasActuales(hand.size());
+            participacionRepository.save(participacion);
+
+            partida.setBolsa(serializeTileList(bag));
+            PartidaDTO result = Mapper.toDTO(partidaRepository.save(partida));
             result.setFichaRobada(drawnTile);
             return result;
         }
@@ -405,6 +457,7 @@ public class PartidaService {
             List<String> updatedHand = removeTilesFromHand(hand, playedTiles);
             participacion.setManoActual(serializeTileList(updatedHand));
             participacion.setFichasActuales(updatedHand.size());
+            participacion.setTurnosInactivo(0);
             participacionRepository.save(participacion);
 
             List<List<String>> mesa = parseMesaGroups(partida.getConjuntoMesa());
@@ -477,6 +530,7 @@ public class PartidaService {
             botParticipacion.setHabilidadesActuales(participacion.getHabilidadesActuales());
             botParticipacion.setManoActual(participacion.getManoActual());
             botParticipacion.setOrdenTurno(participacion.getOrdenTurno());
+            botParticipacion.setTurnosInactivo(participacion.getTurnosInactivo());
 
             participacionRepository.delete(participacion);
             participacionRepository.save(botParticipacion);
@@ -567,13 +621,17 @@ public class PartidaService {
             participacion.setManoActual(serializeTileList(hand));
             participacion.setFichasActuales(hand.size());
             participacion.setHabilidadesActuales("");
-            marketByPlayer.put(participacion.getJugador().getId(), createRandomMarketStock());
+            participacion.setTurnosInactivo(0);
+            if (partida.isModoArcade()) {
+                marketByPlayer.put(participacion.getJugador().getId(), createRandomMarketStock());
+            }
         }
         participacionRepository.saveAll(participaciones);
 
         partida.setConjuntoMesa("");
-        partida.setMercado(serializePartidaMarket(marketByPlayer));
+        partida.setMercado(partida.isModoArcade() ? serializePartidaMarket(marketByPlayer) : "");
         partida.setBolsa(serializeTileList(bag));
+        partida.setEventoActual(partida.isModoArcade() ? getRandomArcadeEvent() : "");
         partida.setGanadorId(null);
         partida.setPuntuacionFinal("");
         partida.setEstado(ESTADO_RUNNING);
@@ -730,6 +788,7 @@ public class PartidaService {
         hand.add(drawn);
         participacion.setManoActual(serializeTileList(hand));
         participacion.setFichasActuales(hand.size());
+        participacion.setTurnosInactivo(0);
         participacionRepository.save(participacion);
         partida.setBolsa(serializeTileList(bag));
     }
@@ -774,6 +833,7 @@ public class PartidaService {
         List<String> updatedHand = removeTilesFromHand(hand, List.of(tile));
         participacion.setManoActual(serializeTileList(updatedHand));
         participacion.setFichasActuales(updatedHand.size());
+        participacion.setTurnosInactivo(0);
         participacionRepository.save(participacion);
 
         mesa.set(extendIndex, extended);
@@ -863,6 +923,7 @@ public class PartidaService {
         List<String> updatedHand = removeTilesFromHand(hand, playedTiles);
         botParticipacion.setManoActual(serializeTileList(updatedHand));
         botParticipacion.setFichasActuales(updatedHand.size());
+        botParticipacion.setTurnosInactivo(0);
         participacionRepository.save(botParticipacion);
 
         List<List<String>> mesa = parseMesaGroups(partida.getConjuntoMesa());
@@ -921,6 +982,7 @@ public class PartidaService {
         List<String> updatedHand = removeTilesFromHand(hand, List.of(tile));
         botParticipacion.setManoActual(serializeTileList(updatedHand));
         botParticipacion.setFichasActuales(updatedHand.size());
+        botParticipacion.setTurnosInactivo(0);
         participacionRepository.save(botParticipacion);
 
         mesa.set(extendIndex, extended);
@@ -970,6 +1032,7 @@ public class PartidaService {
         List<String> updatedHand = removeTilesFromHand(hand, tilesToRemove);
         botParticipacion.setManoActual(serializeTileList(updatedHand));
         botParticipacion.setFichasActuales(updatedHand.size());
+        botParticipacion.setTurnosInactivo(0);
         participacionRepository.save(botParticipacion);
 
         partida.setConjuntoMesa(serializeMesaGroups(normalized));
@@ -1204,6 +1267,7 @@ public class PartidaService {
 
         partida.setTurno(nextTurn);
         partida.setTurnoInicio(now);
+        partida.setEventoActual(partida.isModoArcade() ? getRandomArcadeEvent() : "");
         return Mapper.toDTO(partidaRepository.save(partida));
     }
 
@@ -1363,11 +1427,14 @@ public class PartidaService {
             }
 
             int nextTurn = nextOccupiedTurn(baseTurn, runtime.occupiedSlots);
+            ParticipacionEntity timedOut = getParticipacionByTurn(idPartida, baseTurn);
+            registerInactiveTurn(timedOut);
             runtime.currentTurn = nextTurn;
             runtime.deadline = now.plusSeconds(TURN_TIMEOUT_SECONDS);
 
             partida.setTurno(nextTurn);
             partida.setTurnoInicio(now);
+            partida.setEventoActual(partida.isModoArcade() ? getRandomArcadeEvent() : "");
             partidaRepository.save(partida);
             runAutomatedBotTurnsIfNeeded(partida, now);
         }
@@ -1400,6 +1467,33 @@ public class PartidaService {
         if (partida.getPuntuacionFinal() == null) {
             partida.setPuntuacionFinal("");
         }
+        if (partida.getEventoActual() == null) {
+            partida.setEventoActual("");
+        }
+        if (!partida.isModoArcade()) {
+            partida.setMercado("");
+            partida.setEventoActual("");
+        }
+    }
+
+    private void validateArcadeModeForMarket(PartidaEntity partida) {
+        if (!partida.isModoArcade()) {
+            throw new IllegalStateException("El mercado solo esta disponible en modo arcade");
+        }
+    }
+
+    private String getRandomArcadeEvent() {
+        int index = ThreadLocalRandom.current().nextInt(ARCADE_EVENTS.size());
+        return ARCADE_EVENTS.get(index);
+    }
+
+    private void registerInactiveTurn(ParticipacionEntity participacion) {
+        if (participacion == null || isBotPlayer(participacion)) {
+            return;
+        }
+        int nextValue = Math.min(participacion.getTurnosInactivo() + 1, INACTIVITY_LIMIT_TURNS);
+        participacion.setTurnosInactivo(nextValue);
+        participacionRepository.save(participacion);
     }
 
     private List<List<String>> normalizeGroups(List<List<String>> groups) {

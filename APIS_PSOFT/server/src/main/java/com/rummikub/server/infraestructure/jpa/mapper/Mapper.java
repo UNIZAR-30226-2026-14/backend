@@ -22,6 +22,8 @@ public class Mapper {
                 .bolsa(normalizeSerializedTiles(part.getBolsa()))
                 .mercado(part.getMercado())
                 .conjuntoMesa(normalizeSerializedTiles(part.getConjuntoMesa()))
+                .eventoActual(part.getEventoActual())
+                .modoArcade(part.isModoArcade())
                 .turnoInicio(part.getTurnoInicio())
                 .estado(part.getEstado())
                 .ganadorId(part.getGanadorId())
@@ -38,7 +40,7 @@ public class Mapper {
                 .id(jug.getId())
                 .nombre(jug.getNombre())
                 .monedas(jug.getMonedas())
-                .urlImgPerfil(jug.getUrlImgPerfil())
+                .imagenPerfil(jug.getUrlImgPerfil())
                 .partidasGanadas(jug.getPartidasGanadas())
                 .partidasPerdidas(jug.getPartidasPerdidas())
                 .partidasEmpatadas(jug.getPartidasEmpatadas())
@@ -70,12 +72,13 @@ public class Mapper {
         return ParticipacionDTO.builder()
                 .idJugador(participacion.getJugador().getId())
                 .jugadorNombre(participacion.getJugador().getNombre())
-                .jugadorUrlImgPerfil(participacion.getJugador().getUrlImgPerfil())
+                .jugadorImagenPerfil(participacion.getJugador().getUrlImgPerfil())
                 .idPartida(participacion.getPartida().getIdPartida())
                 .fichasActuales(participacion.getFichasActuales())
                 .habilidadesActuales(participacion.getHabilidadesActuales())
                 .manoActual(normalizeSerializedTiles(participacion.getManoActual()))
                 .ordenTurno(participacion.getOrdenTurno())
+                .turnosInactivo(participacion.getTurnosInactivo())
                 .build();
     }
 

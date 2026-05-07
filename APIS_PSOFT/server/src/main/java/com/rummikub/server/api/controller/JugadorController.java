@@ -51,6 +51,7 @@ public class JugadorController {
         JugadorEntity jugador = new JugadorEntity();
         jugador.setNombre(request.getNombre());
         jugador.setContrasena(request.getContrasena());
+        jugador.setUrlImgPerfil("");
         jugador.setSkinFichas(request.getSkinFichas());
         jugador.setSkinTablero(request.getSkinTablero());
 
@@ -61,7 +62,7 @@ public class JugadorController {
     public JugadorDTO updateProfile(@PathVariable Integer id, @Valid @RequestBody UpdateJugadorProfileRequest request) {
         JugadorEntity jugador = new JugadorEntity();
         jugador.setNombre(request.getNombre());
-        jugador.setUrlImgPerfil(request.getUrlImgPerfil());
+        jugador.setUrlImgPerfil(request.getImagenPerfil());
         jugador.setSkinFichas(request.getSkinFichas());
         jugador.setSkinTablero(request.getSkinTablero());
 

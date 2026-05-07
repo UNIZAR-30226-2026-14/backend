@@ -81,14 +81,20 @@ public class ParticipacionService {
         PartidaEntity partida = partidaRepository.findById(dto.getIdPartida())
                 .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + dto.getIdPartida()));
 
-        ParticipacionEntity entity = new ParticipacionEntity();
-        entity.setId(new ParticipacionId(dto.getIdJugador(), dto.getIdPartida()));
+        ParticipacionId id = new ParticipacionId(dto.getIdJugador(), dto.getIdPartida());
+        ParticipacionEntity existing = participacionRepository.findById(id).orElse(null);
+
+        ParticipacionEntity entity = existing == null ? new ParticipacionEntity() : existing;
+        entity.setId(id);
         entity.setJugador(jugador);
         entity.setPartida(partida);
         entity.setFichasActuales(dto.getFichasActuales());
         entity.setHabilidadesActuales(dto.getHabilidadesActuales() == null ? "" : dto.getHabilidadesActuales());
         entity.setManoActual(dto.getManoActual() == null ? "" : dto.getManoActual());
         entity.setOrdenTurno(dto.getOrdenTurno());
+        if (existing == null) {
+            entity.setTurnosInactivo(dto.getTurnosInactivo());
+        }
         return Mapper.toDTO(participacionRepository.save(entity));
     }
 }

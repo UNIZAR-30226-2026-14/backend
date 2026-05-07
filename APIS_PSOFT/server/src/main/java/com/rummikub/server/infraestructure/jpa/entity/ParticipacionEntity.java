@@ -45,6 +45,9 @@ public class ParticipacionEntity {
     @Column(name = "ORDEN_TURNO")
     private Integer ordenTurno;
 
+    @Column(name = "TURNOS_INACTIVO", nullable = false)
+    private int turnosInactivo;
+
     public ParticipacionEntity(JugadorEntity jugador, PartidaEntity partida, int fichasActuales, String habilidadesActuales) {
         this.id = new ParticipacionId(jugador.getId(), partida.getIdPartida());
         this.jugador = jugador;
@@ -53,5 +56,6 @@ public class ParticipacionEntity {
         this.habilidadesActuales = habilidadesActuales;
         this.manoActual = "";
         this.ordenTurno = null;
+        this.turnosInactivo = 0;
     }
 }

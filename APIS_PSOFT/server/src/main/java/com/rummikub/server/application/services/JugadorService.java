@@ -18,12 +18,15 @@ public class JugadorService {
 
     private final JugadorRepository jugadorRepository;
     private final ListaDeAmigosRepository listaDeAmigosRepository;
+    private final PasswordService passwordService;
 
     public JugadorService(
             JugadorRepository jugadorRepository,
-            ListaDeAmigosRepository listaDeAmigosRepository) {
+            ListaDeAmigosRepository listaDeAmigosRepository,
+            PasswordService passwordService) {
         this.jugadorRepository = jugadorRepository;
         this.listaDeAmigosRepository = listaDeAmigosRepository;
+        this.passwordService = passwordService;
     }
 
     public List<JugadorDTO> getAll() {
@@ -48,6 +51,8 @@ public class JugadorService {
         if (jugadorRepository.existsByNombreIgnoreCase(jugador.getNombre())) {
             throw new IllegalStateException("Ya existe un jugador con nombre: " + jugador.getNombre());
         }
+
+        jugador.setContrasena(passwordService.hash(jugador.getContrasena()));
 
         if (jugador.getUrlImgPerfil() == null) {
             jugador.setUrlImgPerfil("");

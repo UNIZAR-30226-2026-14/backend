@@ -22,6 +22,8 @@ public class PartidaDTO {
     private String mercado;
     private String bolsa;
     private String conjuntoMesa;
+    private String eventoActual;
+    private Boolean modoArcade;
     private LocalDateTime turnoInicio;
     private String estado;
     private Integer ganadorId;

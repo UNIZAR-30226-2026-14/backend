@@ -22,10 +22,12 @@ public class AuthService {
     private static final int SESSION_TTL_HOURS = 12;
 
     private final JugadorRepository jugadorRepository;
+    private final PasswordService passwordService;
     private final Map<String, SessionData> sessions = new ConcurrentHashMap<>();
 
-    public AuthService(JugadorRepository jugadorRepository) {
+    public AuthService(JugadorRepository jugadorRepository, PasswordService passwordService) {
         this.jugadorRepository = jugadorRepository;
+        this.passwordService = passwordService;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -38,8 +40,12 @@ public class AuthService {
         }
         JugadorEntity jugador = jugadores.get(0);
 
-        if (!jugador.getContrasena().equals(request.getContrasena())) {
+        if (!passwordService.matches(request.getContrasena(), jugador.getContrasena())) {
             throw new SecurityException("Credenciales invalidas");
+        }
+        if (!passwordService.isHashed(jugador.getContrasena())) {
+            jugador.setContrasena(passwordService.hash(request.getContrasena()));
+            jugadorRepository.save(jugador);
         }
 
         String token = UUID.randomUUID().toString();

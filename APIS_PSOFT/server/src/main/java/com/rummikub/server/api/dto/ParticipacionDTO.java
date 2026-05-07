@@ -14,10 +14,11 @@ import lombok.Setter;
 public class ParticipacionDTO {
     private Integer idJugador;
     private String jugadorNombre;
-    private String jugadorUrlImgPerfil;
+    private String jugadorImagenPerfil;
     private Integer idPartida;
     private int fichasActuales;
     private String habilidadesActuales;
     private String manoActual;
     private Integer ordenTurno;
+    private int turnosInactivo;
 }

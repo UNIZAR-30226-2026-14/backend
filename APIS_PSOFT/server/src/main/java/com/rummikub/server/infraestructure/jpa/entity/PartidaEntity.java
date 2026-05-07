@@ -42,6 +42,12 @@ public class PartidaEntity {
     @Column(name = "CONJUNTO_MESA", length = 10000)
     private String conjuntoMesa;
 
+    @Column(name = "EVENTO_ACTUAL", length = 120)
+    private String eventoActual;
+
+    @Column(name = "MODO_ARCADE", nullable = false)
+    private boolean modoArcade;
+
     @Column(name = "TURNO_INICIO")
     private LocalDateTime turnoInicio;
 
@@ -63,6 +69,8 @@ public class PartidaEntity {
         this.mercado = "";
         this.bolsa = "";
         this.conjuntoMesa = "";
+        this.eventoActual = "";
+        this.modoArcade = false;
         this.turnoInicio = null;
         this.estado = "WAITING";
         this.ganadorId = null;

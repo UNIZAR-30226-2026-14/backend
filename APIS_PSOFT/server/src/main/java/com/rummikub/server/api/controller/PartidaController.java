@@ -55,6 +55,7 @@ public class PartidaController {
                 .bolsa(request.getBolsa())
                 .mercado(request.getMercado())
                 .conjuntoMesa(request.getConjuntoMesa())
+                .modoArcade(Boolean.TRUE.equals(request.getModoArcade()))
                 .corriendo(request.isCorriendo())
                 .build();
         return partidaService.create(dto);
@@ -68,6 +69,7 @@ public class PartidaController {
                 .bolsa(request.getBolsa())
                 .mercado(request.getMercado())
                 .conjuntoMesa(request.getConjuntoMesa())
+                .modoArcade(request.getModoArcade())
                 .corriendo(request.isCorriendo())
                 .build();
 
@@ -104,6 +106,15 @@ public class PartidaController {
             @RequestHeader("Authorization") String authorizationHeader) {
         authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
         return partidaService.robarFicha(id, request.getIdJugador());
+    }
+
+    @PostMapping("/{id}/solo-robar")
+    public PartidaDTO soloRobar(
+            @PathVariable Integer id,
+            @Valid @RequestBody TurnActionRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
+        return partidaService.robarSinPasarTurno(id, request.getIdJugador());
     }
 
     @PostMapping("/{id}/jugar")
