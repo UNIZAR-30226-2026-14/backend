@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -29,5 +30,6 @@ public class PartidaDTO {
     private Integer ganadorId;
     private String puntuacionFinal;
     private String fichaRobada;
+    private List<String> fichasRobadas;
     private boolean corriendo;
 }
