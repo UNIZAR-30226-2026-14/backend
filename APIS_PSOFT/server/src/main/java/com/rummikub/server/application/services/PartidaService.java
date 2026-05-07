@@ -52,6 +52,7 @@ public class PartidaService {
 
     private static final String ESTADO_WAITING = "WAITING";
     private static final String ESTADO_RUNNING = "RUNNING";
+    private static final String ESTADO_PAUSED = "PAUSED";
     private static final String ESTADO_FINISHED = "FINISHED";
 
     private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOK])(1[0-3]|[1-9])$");
@@ -282,7 +283,7 @@ public class PartidaService {
             mustGetParticipacion(idPartida, idJugadorSolicitante);
 
             partida.setCorriendo(false);
-            partida.setEstado(ESTADO_WAITING);
+            partida.setEstado(ESTADO_PAUSED);
             partida.setTurnoInicio(null);
             turnRuntimeByPartida.remove(idPartida);
 
