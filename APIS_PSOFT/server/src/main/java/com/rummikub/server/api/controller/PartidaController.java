@@ -162,4 +162,12 @@ public class PartidaController {
         authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
         return partidaService.salirPartida(id, request.getIdJugador());
     }
+
+    @PostMapping("/{id}/finalizar")
+    public PartidaDTO finalizar(
+            @PathVariable Integer id,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        return partidaService.finalizarPartida(id, idJugador);
+    }
 }

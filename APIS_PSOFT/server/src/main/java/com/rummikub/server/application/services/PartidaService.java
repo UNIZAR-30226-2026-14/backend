@@ -434,6 +434,39 @@ public class PartidaService {
         }
     }
 
+    @Transactional
+    public PartidaDTO finalizarPartida(Integer idPartida, Integer idJugadorSolicitante) {
+        synchronized (turnMutex) {
+            PartidaEntity partida = partidaRepository.findById(idPartida)
+                    .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
+            ensureDefaultState(partida);
+
+            mustGetParticipacion(idPartida, idJugadorSolicitante);
+
+            if (ESTADO_FINISHED.equals(partida.getEstado())) {
+                throw new IllegalStateException("La partida ya esta finalizada");
+            }
+            if (!partida.isCorriendo() || !ESTADO_RUNNING.equals(partida.getEstado())) {
+                throw new IllegalStateException("Solo se puede finalizar una partida en curso");
+            }
+
+            List<ParticipacionEntity> participaciones = getOrderedParticipaciones(idPartida);
+            if (participaciones.isEmpty()) {
+                throw new IllegalStateException("La partida no tiene jugadores activos");
+            }
+
+            Integer winnerId = participaciones.stream()
+                    .min(Comparator
+                            .comparingInt((ParticipacionEntity p) -> calculateHandPoints(parseTileList(p.getManoActual())))
+                            .thenComparingInt(p -> p.getJugador().getId()))
+                    .map(p -> p.getJugador().getId())
+                    .orElseThrow(() -> new IllegalStateException("No se pudo calcular ganador"));
+
+            finishGame(partida, winnerId);
+            return Mapper.toDTO(partidaRepository.save(partida));
+        }
+    }
+
     public void delete(Integer idPartida) {
         if (!partidaRepository.existsById(idPartida)) {
             throw new NoSuchElementException("Partida no encontrada: " + idPartida);
