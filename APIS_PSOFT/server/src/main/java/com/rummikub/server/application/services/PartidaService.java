@@ -261,10 +261,67 @@ public class PartidaService {
 
             partida.setCorriendo(true);
             partida.setEstado(ESTADO_RUNNING);
-            initializeGameState(partida);
+            if (hasExistingGameState(partida)) {
+                TurnRuntime runtime = createRuntimeFromDatabase(partida, LocalDateTime.now());
+                if (runtime != null) {
+                    turnRuntimeByPartida.put(partida.getIdPartida(), runtime);
+                }
+            } else {
+                initializeGameState(partida);
+            }
             partida = partidaRepository.save(partida);
             PartidaDTO result = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
             return result == null ? Mapper.toDTO(partida) : result;
+        }
+    }
+
+    @Transactional
+    public PartidaDTO pausarPartida(Integer idPartida, Integer idJugadorSolicitante) {
+        synchronized (turnMutex) {
+            PartidaEntity partida = mustGetRunningPartida(idPartida);
+            mustGetParticipacion(idPartida, idJugadorSolicitante);
+
+            partida.setCorriendo(false);
+            partida.setEstado(ESTADO_WAITING);
+            partida.setTurnoInicio(null);
+            turnRuntimeByPartida.remove(idPartida);
+
+            return Mapper.toDTO(partidaRepository.save(partida));
+        }
+    }
+
+    @Transactional
+    public PartidaDTO reanudarPartida(Integer idPartida, Integer idJugadorSolicitante) {
+        synchronized (turnMutex) {
+            PartidaEntity partida = partidaRepository.findById(idPartida)
+                    .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
+            ensureDefaultState(partida);
+            mustGetParticipacion(idPartida, idJugadorSolicitante);
+
+            if (ESTADO_FINISHED.equals(partida.getEstado())) {
+                throw new IllegalStateException("La partida ya finalizo");
+            }
+            if (partida.isCorriendo() || ESTADO_RUNNING.equals(partida.getEstado())) {
+                throw new IllegalStateException("La partida ya esta en curso");
+            }
+            if (!hasExistingGameState(partida)) {
+                throw new IllegalStateException("La partida aun no se ha iniciado, usa /iniciar");
+            }
+
+            partida.setCorriendo(true);
+            partida.setEstado(ESTADO_RUNNING);
+            LocalDateTime now = LocalDateTime.now();
+            partida.setTurnoInicio(now);
+
+            TurnRuntime runtime = createRuntimeFromDatabase(partida, now);
+            if (runtime == null) {
+                throw new IllegalStateException("La partida no tiene jugadores activos");
+            }
+            turnRuntimeByPartida.put(partida.getIdPartida(), runtime);
+
+            partida = partidaRepository.save(partida);
+            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, now);
+            return botUpdated == null ? Mapper.toDTO(partida) : botUpdated;
         }
     }
 
@@ -1259,6 +1316,19 @@ public class PartidaService {
         bag.add(JOKER_CANONICAL);
         Collections.shuffle(bag);
         return bag;
+    }
+
+    private boolean hasExistingGameState(PartidaEntity partida) {
+        List<ParticipacionEntity> participaciones = getOrderedParticipaciones(partida.getIdPartida());
+        if (participaciones.isEmpty()) {
+            return false;
+        }
+        for (ParticipacionEntity p : participaciones) {
+            if (p.getOrdenTurno() == null) {
+                return false;
+            }
+        }
+        return !safe(partida.getBolsa()).isBlank();
     }
 
     private List<String> drawTiles(List<String> bag, int count) {

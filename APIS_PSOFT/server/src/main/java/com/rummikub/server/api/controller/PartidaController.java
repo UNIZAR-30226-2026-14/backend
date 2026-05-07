@@ -154,6 +154,22 @@ public class PartidaController {
         return partidaService.iniciar(id);
     }
 
+    @PostMapping("/{id}/pausar")
+    public PartidaDTO pausar(
+            @PathVariable Integer id,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        return partidaService.pausarPartida(id, idJugador);
+    }
+
+    @PostMapping("/{id}/reanudar")
+    public PartidaDTO reanudar(
+            @PathVariable Integer id,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        return partidaService.reanudarPartida(id, idJugador);
+    }
+
     @PostMapping("/{id}/salir")
     public PartidaDTO salir(
             @PathVariable Integer id,
