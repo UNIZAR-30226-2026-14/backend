@@ -154,6 +154,22 @@ public class PartidaController {
         return partidaService.iniciar(id);
     }
 
+    @PostMapping("/{id}/pausar")
+    public PartidaDTO pausar(
+            @PathVariable Integer id,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        return partidaService.pausarPartida(id, idJugador);
+    }
+
+    @PostMapping("/{id}/reanudar")
+    public PartidaDTO reanudar(
+            @PathVariable Integer id,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        return partidaService.reanudarPartida(id, idJugador);
+    }
+
     @PostMapping("/{id}/salir")
     public PartidaDTO salir(
             @PathVariable Integer id,
@@ -161,5 +177,13 @@ public class PartidaController {
             @RequestHeader("Authorization") String authorizationHeader) {
         authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
         return partidaService.salirPartida(id, request.getIdJugador());
+    }
+
+    @PostMapping("/{id}/finalizar")
+    public PartidaDTO finalizar(
+            @PathVariable Integer id,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        return partidaService.finalizarPartida(id, idJugador);
     }
 }
