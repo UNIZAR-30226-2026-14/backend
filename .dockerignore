@@ -1,0 +1,12 @@
+.git
+.gitignore
+**/.idea
+**/.vscode
+**/target
+**/*.iml
+**/.classpath
+**/.project
+**/.settings
+**/node_modules
+**/.DS_Store
+**/Thumbs.db
