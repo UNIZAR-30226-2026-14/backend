@@ -66,15 +66,20 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
         if (jdbcUrl == null || jdbcUrl.isBlank()) {
             return jdbcUrl;
         }
-        String lower = jdbcUrl.toLowerCase(Locale.ROOT);
-        if (lower.contains("sslmode=")) {
-            return jdbcUrl;
-        }
+        String url = jdbcUrl;
+        String lower = url.toLowerCase(Locale.ROOT);
+
         boolean cloud = lower.contains("supabase") || lower.contains("neon.tech");
-        if (!cloud) {
-            return jdbcUrl;
+        if (cloud && !lower.contains("sslmode=")) {
+            url += (url.contains("?") ? "&" : "?") + "sslmode=require";
+            lower = url.toLowerCase(Locale.ROOT);
         }
-        return jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=require";
+
+        // Pooler transaccional de Supabase (puerto 6543): prepared statements desactivados
+        if (lower.contains("supabase") && lower.contains(":6543") && !lower.contains("preparethreshold=")) {
+            url += (url.contains("?") ? "&" : "?") + "prepareThreshold=0";
+        }
+        return url;
     }
 
     private static String firstNonBlank(String a, String b) {
