@@ -3,6 +3,8 @@ package com.rummikub.server.api.controller;
 import com.rummikub.server.api.dto.JugadorDTO;
 import com.rummikub.server.api.dto.jugador.CreateJugadorRequest;
 import com.rummikub.server.api.dto.jugador.UpdateJugadorProfileRequest;
+import com.rummikub.server.api.dto.jugador.UpdatePasswordRequest;
+import com.rummikub.server.application.services.AuthService;
 import com.rummikub.server.application.services.JugadorService;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
 import jakarta.validation.Valid;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,9 +27,11 @@ import java.util.List;
 public class JugadorController {
 
     private final JugadorService jugadorService;
+    private final AuthService authService;
 
-    public JugadorController(JugadorService jugadorService) {
+    public JugadorController(JugadorService jugadorService, AuthService authService) {
         this.jugadorService = jugadorService;
+        this.authService = authService;
     }
 
     @GetMapping
@@ -67,5 +72,14 @@ public class JugadorController {
         jugador.setSkinTablero(request.getSkinTablero());
 
         return jugadorService.updateProfile(id, jugador);
+    }
+
+    @PatchMapping("/{id}/contrasena")
+    public JugadorDTO updatePassword(
+            @PathVariable Integer id,
+            @Valid @RequestBody UpdatePasswordRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        authService.assertSessionOwner(authorizationHeader, id);
+        return jugadorService.updatePassword(id, request.getContrasenaActual(), request.getContrasenaNueva());
     }
 }

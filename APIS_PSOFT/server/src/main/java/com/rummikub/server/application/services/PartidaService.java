@@ -366,7 +366,7 @@ public class PartidaService {
             PartidaEntity partida = mustGetRunningPartida(idPartida);
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
             validatePlayerTurn(partida, participacion);
-            registerInactiveTurn(participacion);
+            maybeReplaceInactivePlayerWithBot(partida, participacion);
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
             return botUpdated == null ? updated : botUpdated;
@@ -394,7 +394,7 @@ public class PartidaService {
             participacionRepository.save(participacion);
 
             partida.setBolsa(serializeTileList(bag));
-            registerInactiveTurn(participacion);
+            maybeReplaceInactivePlayerWithBot(partida, participacion);
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
             PartidaDTO result = botUpdated == null ? updated : botUpdated;
@@ -533,20 +533,7 @@ public class PartidaService {
                 participacionRepository.delete(participacion);
                 return Mapper.toDTO(partida);
             }
-
-            JugadorEntity bot = createBotPlayer(partida.getIdPartida());
-            ParticipacionEntity botParticipacion = new ParticipacionEntity();
-            botParticipacion.setId(new ParticipacionId(bot.getId(), partida.getIdPartida()));
-            botParticipacion.setJugador(bot);
-            botParticipacion.setPartida(partida);
-            botParticipacion.setFichasActuales(participacion.getFichasActuales());
-            botParticipacion.setHabilidadesActuales(participacion.getHabilidadesActuales());
-            botParticipacion.setManoActual(participacion.getManoActual());
-            botParticipacion.setOrdenTurno(participacion.getOrdenTurno());
-            botParticipacion.setTurnosInactivo(participacion.getTurnosInactivo());
-
-            participacionRepository.delete(participacion);
-            participacionRepository.save(botParticipacion);
+            replaceParticipationWithBot(partida, participacion);
 
             LocalDateTime now = LocalDateTime.now();
             TurnRuntime runtime = createRuntimeFromDatabase(partida, now);
@@ -1438,7 +1425,7 @@ public class PartidaService {
 
             int nextTurn = nextOccupiedTurn(baseTurn, runtime.occupiedSlots);
             ParticipacionEntity timedOut = getParticipacionByTurn(idPartida, baseTurn);
-            registerInactiveTurn(timedOut);
+            maybeReplaceInactivePlayerWithBot(partida, timedOut);
             runtime.currentTurn = nextTurn;
             runtime.deadline = now.plusSeconds(TURN_TIMEOUT_SECONDS);
 
@@ -1500,13 +1487,33 @@ public class PartidaService {
         return ARCADE_EVENTS.get(index);
     }
 
-    private void registerInactiveTurn(ParticipacionEntity participacion) {
+    private void maybeReplaceInactivePlayerWithBot(PartidaEntity partida, ParticipacionEntity participacion) {
         if (participacion == null || isBotPlayer(participacion)) {
             return;
         }
         int nextValue = Math.min(participacion.getTurnosInactivo() + 1, INACTIVITY_LIMIT_TURNS);
         participacion.setTurnosInactivo(nextValue);
+        if (nextValue >= INACTIVITY_LIMIT_TURNS) {
+            replaceParticipationWithBot(partida, participacion);
+            return;
+        }
         participacionRepository.save(participacion);
+    }
+
+    private ParticipacionEntity replaceParticipationWithBot(PartidaEntity partida, ParticipacionEntity participacion) {
+        JugadorEntity bot = createBotPlayer(partida.getIdPartida());
+        ParticipacionEntity botParticipacion = new ParticipacionEntity();
+        botParticipacion.setId(new ParticipacionId(bot.getId(), partida.getIdPartida()));
+        botParticipacion.setJugador(bot);
+        botParticipacion.setPartida(partida);
+        botParticipacion.setFichasActuales(participacion.getFichasActuales());
+        botParticipacion.setHabilidadesActuales(participacion.getHabilidadesActuales());
+        botParticipacion.setManoActual(participacion.getManoActual());
+        botParticipacion.setOrdenTurno(participacion.getOrdenTurno());
+        botParticipacion.setTurnosInactivo(0);
+
+        participacionRepository.delete(participacion);
+        return participacionRepository.save(botParticipacion);
     }
 
     private List<List<String>> normalizeGroups(List<List<String>> groups) {

@@ -104,6 +104,28 @@ public class JugadorService {
         return Mapper.toDTO(jugadorRepository.save(jugador));
     }
 
+    public JugadorDTO updatePassword(Integer id, String contrasenaActual, String contrasenaNueva) {
+        if (contrasenaActual == null || contrasenaActual.isBlank()) {
+            throw new IllegalArgumentException("La contrasena actual es obligatoria");
+        }
+        if (contrasenaNueva == null || contrasenaNueva.isBlank()) {
+            throw new IllegalArgumentException("La contrasena nueva es obligatoria");
+        }
+        if (contrasenaActual.equals(contrasenaNueva)) {
+            throw new IllegalArgumentException("La contrasena nueva debe ser distinta de la actual");
+        }
+
+        JugadorEntity jugador = jugadorRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Jugador no encontrado: " + id));
+
+        if (!passwordService.matches(contrasenaActual, jugador.getContrasena())) {
+            throw new SecurityException("La contrasena actual no es correcta");
+        }
+
+        jugador.setContrasena(passwordService.hash(contrasenaNueva));
+        return Mapper.toDTO(jugadorRepository.save(jugador));
+    }
+
     public void delete(Integer id) {
         if (!jugadorRepository.existsById(id)) {
             throw new NoSuchElementException("Jugador no encontrado: " + id);
