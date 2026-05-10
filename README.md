@@ -243,3 +243,71 @@ Body (replace_board):
 
 - Se ha eliminado la API legacy `/api/games`.
 - Usad solo flujo `partidas + participaciones + auth`.
+
+## 10. Estado backend actualizado (mayo 2026)
+
+### 10.1 Funcionalidades ya implementadas
+
+- Invitaciones a partida privada:
+  - `POST /api/invitaciones` (emisor por token)
+  - `GET /api/invitaciones`
+  - `GET /api/invitaciones?idInvitado=...`
+  - `GET /api/invitaciones/invitado/{idInvitado}`
+  - `DELETE /api/invitaciones/{idEmisor}/{idInvitado}/{idPartida}`
+- Partida privada:
+  - campo `privada` en `Partida`.
+- Arcade:
+  - `modoArcade` en `Partida`.
+  - mercado habilitado solo en arcade.
+- Seguridad:
+  - contrasenas hasheadas en alta/login.
+  - endpoint de cambio de contrasena:
+    - `PATCH /api/jugadores/{id}/contrasena`
+    - requiere token del propio jugador.
+- Inactividad:
+  - se contabiliza `turnosInactivo`.
+  - al llegar al limite, el jugador humano se reemplaza automaticamente por bot.
+- Estado de partida:
+  - endpoint para pausar: `POST /api/partidas/{id}/pausar`
+  - endpoint para reanudar: `POST /api/partidas/{id}/reanudar`
+  - endpoint para finalizar manualmente: `POST /api/partidas/{id}/finalizar`
+  - estados actuales: `WAITING | RUNNING | PAUSED | FINISHED`
+- Robo:
+  - `POST /api/partidas/{id}/solo-robar` acepta `cantidadRobar` opcional.
+  - respuesta incluye `fichaRobada` y `fichasRobadas`.
+- Partida con fichas por jugador:
+  - `PartidaDTO` incluye `fichasPorJugador` (`Map<idJugador, fichasActuales>`).
+
+### 10.2 Invitaciones + partidas a medias en una sola consulta (opcion B)
+
+- Endpoint:
+  - `GET /api/invitaciones?idInvitado={id}&includeInProgress=true`
+- Devuelve objeto combinado:
+  - `invitaciones`: invitaciones recibidas del jugador.
+  - `partidasEnCurso`: partidas donde participa y estan en `RUNNING` o `PAUSED`.
+
+### 10.3 Modo arcade: codificacion de fichas (alineada con IA)
+
+Formato base de ficha:
+
+- `COLOR + VALOR(2 digitos) + SUFIJOS`
+
+Ejemplos:
+
+- normal: `R07`, `B12`
+- dorada: `R07D`
+- arcoiris: `O08A`
+- negativa: `K10N`
+- combinadas: `R07AD`, `B11AN`, `O05DN`, `K03ADN`
+
+Reglas de formato:
+
+- Color: `R`, `B`, `O`, `K`
+- Valor: `01` a `13`
+- Sufijos arcade permitidos: `A` (arcoiris), `D` (dorada), `N` (negativa)
+- Orden canónico al serializar: `A`, `D`, `N`
+
+Notas:
+
+- Las fichas arcoiris (`A`) se tratan como flexibles en validacion de combinaciones arcade.
+- Joker clasico sigue siendo `J*`.
