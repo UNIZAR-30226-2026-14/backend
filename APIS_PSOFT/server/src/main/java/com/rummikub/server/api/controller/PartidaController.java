@@ -116,7 +116,7 @@ public class PartidaController {
             @Valid @RequestBody TurnActionRequest request,
             @RequestHeader("Authorization") String authorizationHeader) {
         authService.assertSessionOwner(authorizationHeader, request.getIdJugador());
-        return partidaService.robarSinPasarTurno(id, request.getIdJugador());
+        return partidaService.robarSinPasarTurno(id, request.getIdJugador(), request.getCantidadRobar());
     }
 
     @PostMapping("/{id}/jugar")

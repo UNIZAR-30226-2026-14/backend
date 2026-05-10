@@ -8,7 +8,9 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+
 import java.util.Map;
+import java.util.List;
 
 @Getter
 @Setter
@@ -31,5 +33,6 @@ public class PartidaDTO {
     private Map<String, Object> puntuacionFinal;
     private Boolean privada;
     private String fichaRobada;
+    private List<String> fichasRobadas;
     private boolean corriendo;
 }

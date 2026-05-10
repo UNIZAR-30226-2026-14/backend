@@ -399,12 +399,13 @@ public class PartidaService {
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
             PartidaDTO result = botUpdated == null ? updated : botUpdated;
             result.setFichaRobada(drawnTile);
+            result.setFichasRobadas(List.of(drawnTile));
             return result;
         }
     }
 
     @Transactional
-    public PartidaDTO robarSinPasarTurno(Integer idPartida, Integer idJugador) {
+    public PartidaDTO robarSinPasarTurno(Integer idPartida, Integer idJugador, Integer cantidadRobar) {
         synchronized (turnMutex) {
             PartidaEntity partida = mustGetRunningPartida(idPartida);
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
@@ -415,9 +416,14 @@ public class PartidaService {
                 throw new IllegalStateException("No quedan fichas en la bolsa");
             }
 
-            String drawnTile = bag.remove(0);
+            int requested = (cantidadRobar == null) ? 1 : cantidadRobar;
+            int drawCount = Math.min(requested, bag.size());
+            List<String> drawnTiles = new ArrayList<>(drawCount);
+            for (int i = 0; i < drawCount; i++) {
+                drawnTiles.add(bag.remove(0));
+            }
             List<String> hand = parseTileList(participacion.getManoActual());
-            hand.add(drawnTile);
+            hand.addAll(drawnTiles);
 
             participacion.setManoActual(serializeTileList(hand));
             participacion.setFichasActuales(hand.size());
@@ -425,7 +431,8 @@ public class PartidaService {
 
             partida.setBolsa(serializeTileList(bag));
             PartidaDTO result = Mapper.toDTO(partidaRepository.save(partida));
-            result.setFichaRobada(drawnTile);
+            result.setFichaRobada(drawnTiles.get(0));
+            result.setFichasRobadas(drawnTiles);
             return result;
         }
     }
