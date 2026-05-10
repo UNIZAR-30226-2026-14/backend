@@ -54,7 +54,7 @@ public class PartidaService {
     private static final String JOKER_CANONICAL = "J*";
     private static final int ARCADE_GOLD_DUPLICATES_PER_VALUE = 1;
     private static final int ARCADE_RAINBOW_DUPLICATES_PER_VALUE = 1;
-    private static final int ARCADE_SPECIAL_COPIES_PER_CODE = 2;
+    private static final int ARCADE_NEGATIVE_DUPLICATES_PER_VALUE = 1;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String ESTADO_WAITING = "WAITING";
@@ -62,7 +62,7 @@ public class PartidaService {
     private static final String ESTADO_PAUSED = "PAUSED";
     private static final String ESTADO_FINISHED = "FINISHED";
 
-    private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOKDA])(1[0-3]|[1-9])$");
+    private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOK])(1[0-3]|0?[1-9])([ADN]{0,3})$");
     private static final Pattern MARKET_OBJECT_PATTERN = Pattern.compile("^(obj[1-7])$", Pattern.CASE_INSENSITIVE);
     private static final List<String> MARKET_OBJECT_CODES = List.of("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7");
     private static final Map<String, Integer> MARKET_OBJECT_VALUES = Map.of(
@@ -81,7 +81,6 @@ public class PartidaService {
             "ROBO_EXTRA",
             "BLOQUEO_MERCADO"
     );
-    private static final List<String> ARCADE_SPECIAL_CODES = List.of("S+", "S-", "S*", "S#");
 
     private final PartidaRepository partidaRepository;
     private final ParticipacionRepository participacionRepository;
@@ -1139,16 +1138,10 @@ public class PartidaService {
 
     private String toIaTile(String backendTile) {
         String normalized = normalizeTile(backendTile);
-        if (isJoker(normalized) || isArcadeWildcard(normalized) || isArcadeSpecial(normalized)) {
+        if (isJoker(normalized)) {
             return JOKER_CANONICAL;
         }
-        if (isArcadeGold(normalized)) {
-            // Doradas se reducen a numericas clasicas para mantener compatibilidad con la IA actual.
-            return "R" + String.format("%02d", parseValue(normalized));
-        }
-        char color = parseColor(normalized);
-        int value = parseValue(normalized);
-        return color + String.format("%02d", value);
+        return normalized;
     }
 
     private String normalizeIaTile(String iaTile) {
@@ -1332,12 +1325,17 @@ public class PartidaService {
     private int calculateHandPoints(List<String> hand) {
         int points = 0;
         for (String tile : hand) {
-            if (isJoker(tile) || isArcadeWildcard(tile) || isArcadeSpecial(tile)) {
+            if (isJoker(tile)) {
                 points += 30;
-            } else if (isArcadeGold(tile)) {
-                points += parseValue(tile) * 2;
             } else {
-                points += parseValue(tile);
+                int base = parseValue(tile);
+                if (isArcadeNegative(tile)) {
+                    base = -base;
+                }
+                if (isArcadeGold(tile)) {
+                    base = base * 2;
+                }
+                points += base;
             }
         }
         return points;
@@ -1389,22 +1387,18 @@ public class PartidaService {
         bag.add(JOKER_CANONICAL);
 
         if (modoArcade) {
-            // Doradas: numericas adicionales de alto valor (D1..D13).
-            for (int value = 1; value <= 13; value++) {
-                for (int copies = 0; copies < ARCADE_GOLD_DUPLICATES_PER_VALUE; copies++) {
-                    bag.add("D" + value);
-                }
-            }
-            // Arcoiris: fichas comodin numericas (A1..A13).
-            for (int value = 1; value <= 13; value++) {
-                for (int copies = 0; copies < ARCADE_RAINBOW_DUPLICATES_PER_VALUE; copies++) {
-                    bag.add("A" + value);
-                }
-            }
-            // Especiales: fichas de efecto (no numericas).
-            for (String special : ARCADE_SPECIAL_CODES) {
-                for (int copies = 0; copies < ARCADE_SPECIAL_COPIES_PER_CODE; copies++) {
-                    bag.add(special);
+            // En arcade las habilidades son sufijos de la ficha base (A, D, N), igual que IA.
+            for (String color : colors) {
+                for (int value = 1; value <= 13; value++) {
+                    for (int copies = 0; copies < ARCADE_GOLD_DUPLICATES_PER_VALUE; copies++) {
+                        bag.add(color + String.format("%02d", value) + "D");
+                    }
+                    for (int copies = 0; copies < ARCADE_RAINBOW_DUPLICATES_PER_VALUE; copies++) {
+                        bag.add(color + String.format("%02d", value) + "A");
+                    }
+                    for (int copies = 0; copies < ARCADE_NEGATIVE_DUPLICATES_PER_VALUE; copies++) {
+                        bag.add(color + String.format("%02d", value) + "N");
+                    }
                 }
             }
         }
@@ -1594,7 +1588,7 @@ public class PartidaService {
         Integer value = null;
         Set<Character> colors = new HashSet<>();
         for (String tile : group) {
-            if (isJoker(tile) || isArcadeWildcard(tile) || isArcadeSpecial(tile)) {
+            if (isJoker(tile) || isArcadeWildcard(tile)) {
                 continue;
             }
             int tileValue = parseValue(tile);
@@ -1621,7 +1615,7 @@ public class PartidaService {
         List<Integer> values = new ArrayList<>();
 
         for (String tile : group) {
-            if (isJoker(tile) || isArcadeWildcard(tile) || isArcadeSpecial(tile)) {
+            if (isJoker(tile) || isArcadeWildcard(tile)) {
                 jokerCount++;
                 continue;
             }
@@ -2020,15 +2014,14 @@ public class PartidaService {
         if ("J".equals(tile) || JOKER_CANONICAL.equals(tile) || "J1".equals(tile) || "J2".equals(tile)) {
             return JOKER_CANONICAL;
         }
-        if (isArcadeSpecial(tile)) {
-            return tile;
-        }
-
         Matcher matcher = TILE_PATTERN.matcher(tile);
         if (!matcher.matches()) {
             throw new IllegalArgumentException("Formato de ficha invalido: " + tileRaw);
         }
-        return tile;
+        String color = matcher.group(1);
+        int value = Integer.parseInt(matcher.group(2));
+        String suffix = canonicalizeArcadeSuffix(matcher.group(3));
+        return color + String.format("%02d", value) + suffix;
     }
 
     private boolean isJoker(String tile) {
@@ -2040,14 +2033,13 @@ public class PartidaService {
     }
 
     private String consumeAnyJoker(Map<String, Integer> countMap) {
-        List<String> jokerKeys = new ArrayList<>(List.of(JOKER_CANONICAL, "J1", "J2", "J"));
-        for (int i = 1; i <= 13; i++) {
-            jokerKeys.add("A" + i);
-        }
-        jokerKeys.addAll(ARCADE_SPECIAL_CODES);
-        for (String key : jokerKeys) {
-            int current = countMap.getOrDefault(key, 0);
-            if (current > 0) {
+        for (Map.Entry<String, Integer> entry : countMap.entrySet()) {
+            String key = entry.getKey();
+            int current = entry.getValue() == null ? 0 : entry.getValue();
+            if (current <= 0) {
+                continue;
+            }
+            if (isJoker(key) || isArcadeWildcard(key)) {
                 countMap.put(key, current - 1);
                 return key;
             }
@@ -2064,14 +2056,7 @@ public class PartidaService {
         if (isJoker(upper)) {
             return JOKER_CANONICAL;
         }
-        if (isArcadeSpecial(upper)) {
-            return upper;
-        }
-        Matcher matcher = TILE_PATTERN.matcher(upper);
-        if (matcher.matches()) {
-            return upper;
-        }
-        throw new IllegalArgumentException("Formato de ficha invalido: " + rawToken);
+        return normalizeTile(upper);
     }
 
     private char parseColor(String tile) {
@@ -2079,7 +2064,11 @@ public class PartidaService {
     }
 
     private int parseValue(String tile) {
-        return Integer.parseInt(tile.substring(1));
+        Matcher matcher = Pattern.compile("^[RBOK](0[1-9]|1[0-3])([ADN]{0,3})$").matcher(tile.toUpperCase(Locale.ROOT));
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("No se pudo extraer valor de ficha: " + tile);
+        }
+        return Integer.parseInt(matcher.group(1));
     }
 
     private boolean isArcadeGold(String tile) {
@@ -2087,7 +2076,7 @@ public class PartidaService {
             return false;
         }
         String normalized = tile.trim().toUpperCase(Locale.ROOT);
-        return normalized.matches("^D(1[0-3]|[1-9])$");
+        return normalized.matches("^[RBOK](0[1-9]|1[0-3]).*D.*$");
     }
 
     private boolean isArcadeWildcard(String tile) {
@@ -2095,15 +2084,34 @@ public class PartidaService {
             return false;
         }
         String normalized = tile.trim().toUpperCase(Locale.ROOT);
-        return normalized.matches("^A(1[0-3]|[1-9])$");
+        return normalized.matches("^[RBOK](0[1-9]|1[0-3]).*A.*$");
     }
 
-    private boolean isArcadeSpecial(String tile) {
+    private boolean isArcadeNegative(String tile) {
         if (tile == null || tile.isBlank()) {
             return false;
         }
         String normalized = tile.trim().toUpperCase(Locale.ROOT);
-        return ARCADE_SPECIAL_CODES.contains(normalized);
+        return normalized.matches("^[RBOK](0[1-9]|1[0-3]).*N.*$");
+    }
+
+    private String canonicalizeArcadeSuffix(String rawSuffix) {
+        if (rawSuffix == null || rawSuffix.isBlank()) {
+            return "";
+        }
+        boolean hasA = false;
+        boolean hasD = false;
+        boolean hasN = false;
+        for (char c : rawSuffix.toUpperCase(Locale.ROOT).toCharArray()) {
+            if (c == 'A') hasA = true;
+            if (c == 'D') hasD = true;
+            if (c == 'N') hasN = true;
+        }
+        StringBuilder suffix = new StringBuilder();
+        if (hasA) suffix.append('A');
+        if (hasD) suffix.append('D');
+        if (hasN) suffix.append('N');
+        return suffix.toString();
     }
 
     private String safe(String value) {
