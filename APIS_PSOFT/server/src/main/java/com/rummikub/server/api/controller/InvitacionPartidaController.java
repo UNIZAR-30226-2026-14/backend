@@ -2,6 +2,7 @@ package com.rummikub.server.api.controller;
 
 import com.rummikub.server.api.dto.InvitacionPartidaDTO;
 import com.rummikub.server.api.dto.invitacion.CreateInvitacionPartidaRequest;
+import com.rummikub.server.api.dto.invitacion.InvitacionesPendientesResponse;
 import com.rummikub.server.application.services.AuthService;
 import com.rummikub.server.application.services.InvitacionPartidaService;
 import jakarta.validation.Valid;
@@ -33,7 +34,17 @@ public class InvitacionPartidaController {
     }
 
     @GetMapping
-    public List<InvitacionPartidaDTO> getAll(@RequestParam(required = false) Integer idInvitado) {
+    public Object getAll(
+            @RequestParam(required = false) Integer idInvitado,
+            @RequestParam(required = false, defaultValue = "false") boolean includeInProgress) {
+        if (includeInProgress) {
+            if (idInvitado == null) {
+                throw new IllegalArgumentException("idInvitado es obligatorio cuando includeInProgress=true");
+            }
+            InvitacionesPendientesResponse response = invitacionPartidaService
+                    .getPendientesConPartidasEnCurso(idInvitado);
+            return response;
+        }
         if (idInvitado != null) {
             return invitacionPartidaService.getByInvitadoId(idInvitado);
         }

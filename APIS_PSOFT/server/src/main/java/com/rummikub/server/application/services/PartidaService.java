@@ -52,6 +52,9 @@ public class PartidaService {
     private static final int MARKET_ITEM_STOCK = 1;
     private static final int INACTIVITY_LIMIT_TURNS = 2;
     private static final String JOKER_CANONICAL = "J*";
+    private static final int ARCADE_GOLD_DUPLICATES_PER_VALUE = 1;
+    private static final int ARCADE_RAINBOW_DUPLICATES_PER_VALUE = 1;
+    private static final int ARCADE_SPECIAL_COPIES_PER_CODE = 2;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String ESTADO_WAITING = "WAITING";
@@ -59,7 +62,7 @@ public class PartidaService {
     private static final String ESTADO_PAUSED = "PAUSED";
     private static final String ESTADO_FINISHED = "FINISHED";
 
-    private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOK])(1[0-3]|[1-9])$");
+    private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOKDA])(1[0-3]|[1-9])$");
     private static final Pattern MARKET_OBJECT_PATTERN = Pattern.compile("^(obj[1-7])$", Pattern.CASE_INSENSITIVE);
     private static final List<String> MARKET_OBJECT_CODES = List.of("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7");
     private static final Map<String, Integer> MARKET_OBJECT_VALUES = Map.of(
@@ -78,6 +81,7 @@ public class PartidaService {
             "ROBO_EXTRA",
             "BLOQUEO_MERCADO"
     );
+    private static final List<String> ARCADE_SPECIAL_CODES = List.of("S+", "S-", "S*", "S#");
 
     private final PartidaRepository partidaRepository;
     private final ParticipacionRepository participacionRepository;
@@ -112,6 +116,7 @@ public class PartidaService {
     public List<PartidaDTO> getAll() {
         return partidaRepository.findAll().stream()
                 .map(Mapper::toDTO)
+                .map(this::attachFichasPorJugador)
                 .toList();
     }
 
@@ -120,7 +125,7 @@ public class PartidaService {
         PartidaEntity partida = partidaRepository.findById(idPartida)
                 .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
         ensureDefaultState(partida);
-        return Mapper.toDTO(partida);
+        return toPartidaDTO(partida);
     }
 
     @Transactional
@@ -219,7 +224,7 @@ public class PartidaService {
             partida.setEstado(ESTADO_WAITING);
         }
 
-        return Mapper.toDTO(partida);
+        return toPartidaDTO(partida);
     }
 
     @Transactional
@@ -271,7 +276,7 @@ public class PartidaService {
             }
         }
 
-        return Mapper.toDTO(partidaRepository.save(partida));
+        return toPartidaDTO(partidaRepository.save(partida));
     }
 
     @Transactional
@@ -301,7 +306,7 @@ public class PartidaService {
             }
             partida = partidaRepository.save(partida);
             PartidaDTO result = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
-            return result == null ? Mapper.toDTO(partida) : result;
+            return result == null ? toPartidaDTO(partida) : result;
         }
     }
 
@@ -316,7 +321,7 @@ public class PartidaService {
             partida.setTurnoInicio(null);
             turnRuntimeByPartida.remove(idPartida);
 
-            return Mapper.toDTO(partidaRepository.save(partida));
+            return toPartidaDTO(partidaRepository.save(partida));
         }
     }
 
@@ -351,7 +356,7 @@ public class PartidaService {
 
             partida = partidaRepository.save(partida);
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, now);
-            return botUpdated == null ? Mapper.toDTO(partida) : botUpdated;
+            return botUpdated == null ? toPartidaDTO(partida) : botUpdated;
         }
     }
 
@@ -369,7 +374,7 @@ public class PartidaService {
             maybeReplaceInactivePlayerWithBot(partida, participacion);
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
-            return botUpdated == null ? updated : botUpdated;
+            return botUpdated == null ? attachFichasPorJugador(updated) : botUpdated;
         }
     }
 
@@ -430,7 +435,7 @@ public class PartidaService {
             participacionRepository.save(participacion);
 
             partida.setBolsa(serializeTileList(bag));
-            PartidaDTO result = Mapper.toDTO(partidaRepository.save(partida));
+            PartidaDTO result = toPartidaDTO(partidaRepository.save(partida));
             result.setFichaRobada(drawnTiles.get(0));
             result.setFichasRobadas(drawnTiles);
             return result;
@@ -479,7 +484,7 @@ public class PartidaService {
 
             if (updatedHand.isEmpty()) {
                 finishGame(partida, idJugador);
-                return Mapper.toDTO(partidaRepository.save(partida));
+                return toPartidaDTO(partidaRepository.save(partida));
             }
 
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
@@ -531,7 +536,7 @@ public class PartidaService {
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
             if (!partida.isCorriendo() || !ESTADO_RUNNING.equals(partida.getEstado())) {
                 participacionRepository.delete(participacion);
-                return Mapper.toDTO(partida);
+                return toPartidaDTO(partida);
             }
             replaceParticipationWithBot(partida, participacion);
 
@@ -542,7 +547,7 @@ public class PartidaService {
             }
 
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, now);
-            return botUpdated == null ? Mapper.toDTO(partida) : botUpdated;
+            return botUpdated == null ? toPartidaDTO(partida) : botUpdated;
         }
     }
 
@@ -575,7 +580,7 @@ public class PartidaService {
                     .orElseThrow(() -> new IllegalStateException("No se pudo calcular ganador"));
 
             finishGame(partida, winnerId);
-            return Mapper.toDTO(partidaRepository.save(partida));
+            return toPartidaDTO(partidaRepository.save(partida));
         }
     }
 
@@ -611,7 +616,7 @@ public class PartidaService {
             throw new IllegalStateException("Solo se permiten 4 jugadores por partida");
         }
 
-        List<String> bag = createAndShuffleFullBag();
+        List<String> bag = createAndShuffleBag(partida.isModoArcade());
         Map<Integer, LinkedHashMap<String, Integer>> marketByPlayer = new HashMap<>();
         for (int i = 0; i < participaciones.size(); i++) {
             ParticipacionEntity participacion = participaciones.get(i);
@@ -710,7 +715,7 @@ public class PartidaService {
             BotMoveResponse moveResponse = askBotMove(partida, botTurn);
             applyBotMove(partida, botTurn, moveResponse, now);
             partida = partidaRepository.save(partida);
-            lastState = Mapper.toDTO(partida);
+            lastState = toPartidaDTO(partida);
         }
         return lastState;
     }
@@ -841,7 +846,7 @@ public class PartidaService {
 
         if (updatedHand.isEmpty()) {
             finishGame(partida, participacion.getJugador().getId());
-            return Mapper.toDTO(partidaRepository.save(partida));
+            return toPartidaDTO(partidaRepository.save(partida));
         }
 
         PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
@@ -889,7 +894,7 @@ public class PartidaService {
 
         if (updatedHand.isEmpty()) {
             finishGame(partida, participacion.getJugador().getId());
-            return Mapper.toDTO(partidaRepository.save(partida));
+            return toPartidaDTO(partidaRepository.save(partida));
         }
 
         PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
@@ -1134,8 +1139,12 @@ public class PartidaService {
 
     private String toIaTile(String backendTile) {
         String normalized = normalizeTile(backendTile);
-        if (isJoker(normalized)) {
+        if (isJoker(normalized) || isArcadeWildcard(normalized) || isArcadeSpecial(normalized)) {
             return JOKER_CANONICAL;
+        }
+        if (isArcadeGold(normalized)) {
+            // Doradas se reducen a numericas clasicas para mantener compatibilidad con la IA actual.
+            return "R" + String.format("%02d", parseValue(normalized));
         }
         char color = parseColor(normalized);
         int value = parseValue(normalized);
@@ -1268,7 +1277,7 @@ public class PartidaService {
         partida.setTurno(nextTurn);
         partida.setTurnoInicio(now);
         partida.setEventoActual(partida.isModoArcade() ? getRandomArcadeEvent() : "");
-        return Mapper.toDTO(partidaRepository.save(partida));
+        return toPartidaDTO(partidaRepository.save(partida));
     }
 
     private void finishGame(PartidaEntity partida, Integer winnerId) {
@@ -1323,8 +1332,10 @@ public class PartidaService {
     private int calculateHandPoints(List<String> hand) {
         int points = 0;
         for (String tile : hand) {
-            if (isJoker(tile)) {
+            if (isJoker(tile) || isArcadeWildcard(tile) || isArcadeSpecial(tile)) {
                 points += 30;
+            } else if (isArcadeGold(tile)) {
+                points += parseValue(tile) * 2;
             } else {
                 points += parseValue(tile);
             }
@@ -1363,7 +1374,7 @@ public class PartidaService {
         return normalized < 0 ? normalized + MAX_TURN_SLOTS : normalized;
     }
 
-    private List<String> createAndShuffleFullBag() {
+    private List<String> createAndShuffleBag(boolean modoArcade) {
         List<String> bag = new ArrayList<>();
         String[] colors = {"R", "B", "O", "K"};
 
@@ -1376,6 +1387,28 @@ public class PartidaService {
 
         bag.add(JOKER_CANONICAL);
         bag.add(JOKER_CANONICAL);
+
+        if (modoArcade) {
+            // Doradas: numericas adicionales de alto valor (D1..D13).
+            for (int value = 1; value <= 13; value++) {
+                for (int copies = 0; copies < ARCADE_GOLD_DUPLICATES_PER_VALUE; copies++) {
+                    bag.add("D" + value);
+                }
+            }
+            // Arcoiris: fichas comodin numericas (A1..A13).
+            for (int value = 1; value <= 13; value++) {
+                for (int copies = 0; copies < ARCADE_RAINBOW_DUPLICATES_PER_VALUE; copies++) {
+                    bag.add("A" + value);
+                }
+            }
+            // Especiales: fichas de efecto (no numericas).
+            for (String special : ARCADE_SPECIAL_CODES) {
+                for (int copies = 0; copies < ARCADE_SPECIAL_COPIES_PER_CODE; copies++) {
+                    bag.add(special);
+                }
+            }
+        }
+
         Collections.shuffle(bag);
         return bag;
     }
@@ -1516,6 +1549,24 @@ public class PartidaService {
         return participacionRepository.save(botParticipacion);
     }
 
+    private PartidaDTO toPartidaDTO(PartidaEntity partida) {
+        return attachFichasPorJugador(Mapper.toDTO(partida));
+    }
+
+    private PartidaDTO attachFichasPorJugador(PartidaDTO dto) {
+        if (dto == null || dto.getIdPartida() == null) {
+            return dto;
+        }
+        Map<Integer, Integer> fichas = new LinkedHashMap<>();
+        for (ParticipacionEntity p : participacionRepository.findByPartida_IdPartida(dto.getIdPartida())) {
+            if (p.getJugador() != null && p.getJugador().getId() != null) {
+                fichas.put(p.getJugador().getId(), p.getFichasActuales());
+            }
+        }
+        dto.setFichasPorJugador(fichas);
+        return dto;
+    }
+
     private List<List<String>> normalizeGroups(List<List<String>> groups) {
         List<List<String>> normalized = new ArrayList<>();
         for (List<String> group : groups) {
@@ -1543,7 +1594,7 @@ public class PartidaService {
         Integer value = null;
         Set<Character> colors = new HashSet<>();
         for (String tile : group) {
-            if (isJoker(tile)) {
+            if (isJoker(tile) || isArcadeWildcard(tile) || isArcadeSpecial(tile)) {
                 continue;
             }
             int tileValue = parseValue(tile);
@@ -1570,7 +1621,7 @@ public class PartidaService {
         List<Integer> values = new ArrayList<>();
 
         for (String tile : group) {
-            if (isJoker(tile)) {
+            if (isJoker(tile) || isArcadeWildcard(tile) || isArcadeSpecial(tile)) {
                 jokerCount++;
                 continue;
             }
@@ -1969,6 +2020,9 @@ public class PartidaService {
         if ("J".equals(tile) || JOKER_CANONICAL.equals(tile) || "J1".equals(tile) || "J2".equals(tile)) {
             return JOKER_CANONICAL;
         }
+        if (isArcadeSpecial(tile)) {
+            return tile;
+        }
 
         Matcher matcher = TILE_PATTERN.matcher(tile);
         if (!matcher.matches()) {
@@ -1986,7 +2040,11 @@ public class PartidaService {
     }
 
     private String consumeAnyJoker(Map<String, Integer> countMap) {
-        List<String> jokerKeys = List.of(JOKER_CANONICAL, "J1", "J2", "J");
+        List<String> jokerKeys = new ArrayList<>(List.of(JOKER_CANONICAL, "J1", "J2", "J"));
+        for (int i = 1; i <= 13; i++) {
+            jokerKeys.add("A" + i);
+        }
+        jokerKeys.addAll(ARCADE_SPECIAL_CODES);
         for (String key : jokerKeys) {
             int current = countMap.getOrDefault(key, 0);
             if (current > 0) {
@@ -2002,10 +2060,18 @@ public class PartidaService {
         if (token.isEmpty()) {
             return "";
         }
-        if (isJoker(token)) {
+        String upper = token.toUpperCase(Locale.ROOT);
+        if (isJoker(upper)) {
             return JOKER_CANONICAL;
         }
-        return token.toUpperCase(Locale.ROOT);
+        if (isArcadeSpecial(upper)) {
+            return upper;
+        }
+        Matcher matcher = TILE_PATTERN.matcher(upper);
+        if (matcher.matches()) {
+            return upper;
+        }
+        throw new IllegalArgumentException("Formato de ficha invalido: " + rawToken);
     }
 
     private char parseColor(String tile) {
@@ -2014,6 +2080,30 @@ public class PartidaService {
 
     private int parseValue(String tile) {
         return Integer.parseInt(tile.substring(1));
+    }
+
+    private boolean isArcadeGold(String tile) {
+        if (tile == null || tile.isBlank()) {
+            return false;
+        }
+        String normalized = tile.trim().toUpperCase(Locale.ROOT);
+        return normalized.matches("^D(1[0-3]|[1-9])$");
+    }
+
+    private boolean isArcadeWildcard(String tile) {
+        if (tile == null || tile.isBlank()) {
+            return false;
+        }
+        String normalized = tile.trim().toUpperCase(Locale.ROOT);
+        return normalized.matches("^A(1[0-3]|[1-9])$");
+    }
+
+    private boolean isArcadeSpecial(String tile) {
+        if (tile == null || tile.isBlank()) {
+            return false;
+        }
+        String normalized = tile.trim().toUpperCase(Locale.ROOT);
+        return ARCADE_SPECIAL_CODES.contains(normalized);
     }
 
     private String safe(String value) {

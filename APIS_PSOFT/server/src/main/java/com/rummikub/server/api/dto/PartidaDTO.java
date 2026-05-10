@@ -34,5 +34,6 @@ public class PartidaDTO {
     private Boolean privada;
     private String fichaRobada;
     private List<String> fichasRobadas;
+    private Map<Integer, Integer> fichasPorJugador;
     private boolean corriendo;
 }
