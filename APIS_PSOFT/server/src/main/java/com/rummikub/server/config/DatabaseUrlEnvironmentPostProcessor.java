@@ -34,11 +34,22 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
         Map<String, Object> map = new LinkedHashMap<>();
 
         if (raw.startsWith("jdbc:")) {
-            String normalized = ensureSslModeForCloudProviders(raw);
-            if (!normalized.equals(raw)) {
+            // jdbc:postgresql://user:pass@host/db rompe el driver si las credenciales van en la URL
+            Parsed split = splitJdbcEmbeddedCredentials(raw);
+            String normalized = ensureSslModeForCloudProviders(split.jdbcUrl());
+
+            boolean touched = !normalized.equals(raw)
+                    || split.username() != null
+                    || split.password() != null;
+
+            if (touched) {
                 map.put("spring.datasource.url", normalized);
-            }
-            if (!map.isEmpty()) {
+                if (split.username() != null) {
+                    map.put("spring.datasource.username", split.username());
+                }
+                if (split.password() != null) {
+                    map.put("spring.datasource.password", split.password());
+                }
                 environment.getPropertySources().addFirst(new MapPropertySource(PROPERTY_SOURCE_NAME, map));
             }
             return;
@@ -80,6 +91,35 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
             url += (url.contains("?") ? "&" : "?") + "prepareThreshold=0";
         }
         return url;
+    }
+
+    private static final String JDBC_POSTGRES_PREFIX = "jdbc:postgresql://";
+
+    /**
+     * Si {@code DATABASE_URL} viene como JDBC con usuario/contraseña antes del host
+     * ({@code jdbc:postgresql://user:pass@host...}), las mueve a propiedades separadas.
+     */
+    private static Parsed splitJdbcEmbeddedCredentials(String jdbcUrl) {
+        if (jdbcUrl == null || !jdbcUrl.startsWith(JDBC_POSTGRES_PREFIX)) {
+            return new Parsed(jdbcUrl, null, null);
+        }
+        String rest = jdbcUrl.substring(JDBC_POSTGRES_PREFIX.length());
+        int atIdx = rest.indexOf('@');
+        if (atIdx <= 0) {
+            return new Parsed(jdbcUrl, null, null);
+        }
+        String beforeAt = rest.substring(0, atIdx);
+        String afterAt = rest.substring(atIdx + 1);
+        if (!beforeAt.contains(":")) {
+            String username = urlDecode(beforeAt);
+            String clean = JDBC_POSTGRES_PREFIX + afterAt;
+            return new Parsed(clean, username, null);
+        }
+        int colonIdx = beforeAt.indexOf(':');
+        String username = urlDecode(beforeAt.substring(0, colonIdx));
+        String password = urlDecode(beforeAt.substring(colonIdx + 1));
+        String clean = JDBC_POSTGRES_PREFIX + afterAt;
+        return new Parsed(clean, username, password);
     }
 
     private static String firstNonBlank(String a, String b) {
