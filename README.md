@@ -112,6 +112,7 @@ Las peticiones JSON no cambian; solo cambia el esquema (`https`) y el puerto (`8
 - `POST /api/partidas/{id}/siguiente-turno` (fin de turno)
 - `POST /api/partidas/{id}/pasar`
 - `POST /api/partidas/{id}/robar`
+- `POST /api/partidas/{id}/solo-robar` (roba sin avanzar turno)
 - `POST /api/partidas/{id}/jugar`
 - `POST /api/partidas/{id}/jugar-avanzado`
 - `POST /api/partidas/{id}/salir`
@@ -139,6 +140,7 @@ Las peticiones JSON no cambian; solo cambia el esquema (`https`) y el puerto (`8
 - `DELETE /api/admin/wipe` (unico DELETE)
 
 En jugador se distinguen ahora `skinFichas` y `skinTablero` (en lugar de un unico campo de cosmeticos).
+En jugador, el campo de imagen expuesto por la API es `imagenPerfil`.
 En amistades, las respuestas incluyen IDs, nombres y estado.
 
 ## 7. Estado de partida (nuevo)
@@ -147,8 +149,15 @@ Campos nuevos en `Partida`:
 
 - `estado`: `WAITING | RUNNING | FINISHED`
 - `ganadorId`
-- `puntuacionFinal` (json string con resumen)
+- `puntuacionFinal` (diccionario con resumen)
 - `turnoInicio`
+- `modoArcade`
+- `eventoActual`
+
+Comportamiento de modos:
+
+- `modoArcade=false`: mercado deshabilitado y `eventoActual` vacio.
+- `modoArcade=true`: mercado habilitado y `eventoActual` se usa en partida.
 
 Al iniciar (`/iniciar`):
 
@@ -160,11 +169,16 @@ Al iniciar (`/iniciar`):
 Fin de partida:
 
 - Cuando un jugador se queda sin fichas al jugar.
-- Se guarda `ganadorId` y `puntuacionFinal`.
+- Se guarda `ganadorId` y `puntuacionFinal`. En la API se devuelve como diccionario.
 - Se actualizan stats de jugador.
 - `estado=FINISHED`.
 
 ## 8. Formato de acciones de turno
+
+En participaciones ahora tambien se expone:
+
+- `jugadorImagenPerfil`
+- `turnosInactivo`
 
 ### Pasar / Siguiente turno / Robar
 
@@ -190,7 +204,8 @@ Body:
 }
 ```
 
-`POST /api/partidas/{id}/robar` ahora devuelve además `fichaRobada` en la respuesta.
+`POST /api/partidas/{id}/robar` ahora devuelve ademas `fichaRobada` en la respuesta.
+`POST /api/partidas/{id}/solo-robar` devuelve `fichaRobada` pero mantiene el mismo `turno`.
 
 Reglas validadas:
 

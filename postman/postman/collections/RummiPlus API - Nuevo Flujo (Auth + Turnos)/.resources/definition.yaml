@@ -30,3 +30,6 @@ variables:
   grupoEncontradoSolo: "false"
   jugadaExitosaSolo: "false"
   mesaInicialSolo: ""
+  classicPartidaId: ""
+  arcadePartidaId: ""
+  imagenPerfilJ1: https://cdn.rummiplus.local/perfiles/frontuno.png

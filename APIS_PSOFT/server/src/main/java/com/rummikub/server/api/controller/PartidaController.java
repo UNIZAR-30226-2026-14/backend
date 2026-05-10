@@ -56,6 +56,7 @@ public class PartidaController {
                 .mercado(request.getMercado())
                 .conjuntoMesa(request.getConjuntoMesa())
                 .modoArcade(Boolean.TRUE.equals(request.getModoArcade()))
+                .privada(Boolean.TRUE.equals(request.getPrivada()))
                 .corriendo(request.isCorriendo())
                 .build();
         return partidaService.create(dto);
@@ -70,6 +71,7 @@ public class PartidaController {
                 .mercado(request.getMercado())
                 .conjuntoMesa(request.getConjuntoMesa())
                 .modoArcade(request.getModoArcade())
+                .privada(request.getPrivada())
                 .corriendo(request.isCorriendo())
                 .build();
 

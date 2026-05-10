@@ -23,6 +23,7 @@ public class UpdatePartidaRequest {
     private String conjuntoMesa;
 
     private Boolean modoArcade;
+    private Boolean privada;
 
     private boolean corriendo;
 
@@ -80,5 +81,13 @@ public class UpdatePartidaRequest {
 
     public void setModoArcade(Boolean modoArcade) {
         this.modoArcade = modoArcade;
+    }
+
+    public Boolean getPrivada() {
+        return privada;
+    }
+
+    public void setPrivada(Boolean privada) {
+        this.privada = privada;
     }
 }

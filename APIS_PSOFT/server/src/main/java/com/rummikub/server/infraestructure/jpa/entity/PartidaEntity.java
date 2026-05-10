@@ -60,6 +60,9 @@ public class PartidaEntity {
     @Column(name = "PUNTUACION_FINAL", length = 2000)
     private String puntuacionFinal;
 
+    @Column(name = "PRIVADA", nullable = false)
+    private boolean privada;
+
     @Column(name = "CORRIENDO", nullable = false)
     private boolean corriendo;
 
@@ -75,6 +78,7 @@ public class PartidaEntity {
         this.estado = "WAITING";
         this.ganadorId = null;
         this.puntuacionFinal = "";
+        this.privada = false;
         this.corriendo = false;
     }
 }

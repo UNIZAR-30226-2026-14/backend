@@ -1,5 +1,7 @@
 package com.rummikub.server.infraestructure.jpa.mapper;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rummikub.server.api.dto.JugadorDTO;
 import com.rummikub.server.api.dto.ListaDeAmigosDTO;
 import com.rummikub.server.api.dto.ParticipacionDTO;
@@ -9,7 +11,12 @@ import com.rummikub.server.infraestructure.jpa.entity.ListaDeAmigosEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionEntity;
 import com.rummikub.server.infraestructure.jpa.entity.PartidaEntity;
 
+import java.util.Collections;
+import java.util.Map;
+
 public class Mapper {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static PartidaDTO toDTO(PartidaEntity part) {
         if (part == null) {
@@ -27,7 +34,8 @@ public class Mapper {
                 .turnoInicio(part.getTurnoInicio())
                 .estado(part.getEstado())
                 .ganadorId(part.getGanadorId())
-                .puntuacionFinal(part.getPuntuacionFinal())
+                .puntuacionFinal(parseScoreSummary(part.getPuntuacionFinal()))
+                .privada(part.isPrivada())
                 .corriendo(part.isCorriendo())
                 .build();
     }
@@ -101,5 +109,16 @@ public class Mapper {
             groups[i] = String.join(",", tiles);
         }
         return String.join(";", groups);
+    }
+
+    private static Map<String, Object> parseScoreSummary(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return Collections.emptyMap();
+        }
+        try {
+            return OBJECT_MAPPER.readValue(rawValue, new TypeReference<>() {});
+        } catch (Exception ex) {
+            return Map.of("raw", rawValue);
+        }
     }
 }

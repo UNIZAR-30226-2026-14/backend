@@ -1,5 +1,6 @@
 package com.rummikub.server.application.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rummikub.server.api.dto.PartidaDTO;
 import com.rummikub.server.api.dto.bot.BotMoveDTO;
 import com.rummikub.server.api.dto.bot.BotMoveRequest;
@@ -51,6 +52,7 @@ public class PartidaService {
     private static final int MARKET_ITEM_STOCK = 1;
     private static final int INACTIVITY_LIMIT_TURNS = 2;
     private static final String JOKER_CANONICAL = "J*";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String ESTADO_WAITING = "WAITING";
     private static final String ESTADO_RUNNING = "RUNNING";
@@ -197,6 +199,7 @@ public class PartidaService {
         partida.setConjuntoMesa(safe(dto.getConjuntoMesa()));
         partida.setEventoActual("");
         partida.setModoArcade(Boolean.TRUE.equals(dto.getModoArcade()));
+        partida.setPrivada(Boolean.TRUE.equals(dto.getPrivada()));
         if (!partida.isModoArcade()) {
             partida.setMercado("");
         }
@@ -236,6 +239,9 @@ public class PartidaService {
         partida.setConjuntoMesa(safe(dto.getConjuntoMesa()));
         if (dto.getModoArcade() != null) {
             partida.setModoArcade(dto.getModoArcade());
+        }
+        if (dto.getPrivada() != null) {
+            partida.setPrivada(dto.getPrivada());
         }
         if (!partida.isModoArcade()) {
             partida.setMercado("");
@@ -1300,27 +1306,24 @@ public class PartidaService {
         partida.setCorriendo(false);
         partida.setEstado(ESTADO_FINISHED);
         partida.setGanadorId(winnerId);
-        partida.setPuntuacionFinal(buildScoreSummary(winnerId, winnerPoints, remaining));
+        partida.setPuntuacionFinal(serializeScoreSummary(buildScoreSummary(winnerId, winnerPoints, remaining)));
         partida.setTurnoInicio(null);
         turnRuntimeByPartida.remove(partida.getIdPartida());
     }
 
-    private String buildScoreSummary(Integer winnerId, int winnerPoints, Map<Integer, Integer> remaining) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{\"winnerId\":").append(winnerId)
-                .append(",\"winnerPoints\":").append(winnerPoints)
-                .append(",\"remaining\":{");
-
-        boolean first = true;
-        for (Map.Entry<Integer, Integer> entry : remaining.entrySet()) {
-            if (!first) {
-                sb.append(",");
-            }
-            sb.append("\"").append(entry.getKey()).append("\":").append(entry.getValue());
-            first = false;
+    private Map<String, Object> buildScoreSummary(Integer winnerId, int winnerPoints, Map<Integer, Integer> remaining) {
+        Map<String, Integer> normalizedRemaining = new LinkedHashMap<>();
+        List<Integer> orderedPlayerIds = new ArrayList<>(remaining.keySet());
+        Collections.sort(orderedPlayerIds);
+        for (Integer playerId : orderedPlayerIds) {
+            normalizedRemaining.put(String.valueOf(playerId), remaining.get(playerId));
         }
-        sb.append("}}");
-        return sb.toString();
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("winnerId", winnerId);
+        summary.put("winnerPoints", winnerPoints);
+        summary.put("remaining", normalizedRemaining);
+        return summary;
     }
 
     private int calculateHandPoints(List<String> hand) {
@@ -1469,6 +1472,9 @@ public class PartidaService {
         }
         if (partida.getEventoActual() == null) {
             partida.setEventoActual("");
+        }
+        if (partida.getPuntuacionFinal() == null) {
+            partida.setPuntuacionFinal("");
         }
         if (!partida.isModoArcade()) {
             partida.setMercado("");
@@ -1998,6 +2004,17 @@ public class PartidaService {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private String serializeScoreSummary(Map<String, Object> scoreSummary) {
+        if (scoreSummary == null || scoreSummary.isEmpty()) {
+            return "";
+        }
+        try {
+            return OBJECT_MAPPER.writeValueAsString(scoreSummary);
+        } catch (Exception ex) {
+            throw new IllegalStateException("No se pudo serializar la puntuacion final");
+        }
     }
 
     public void clearTurnRuntimeCache() {

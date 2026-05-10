@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -27,7 +28,8 @@ public class PartidaDTO {
     private LocalDateTime turnoInicio;
     private String estado;
     private Integer ganadorId;
-    private String puntuacionFinal;
+    private Map<String, Object> puntuacionFinal;
+    private Boolean privada;
     private String fichaRobada;
     private boolean corriendo;
 }
