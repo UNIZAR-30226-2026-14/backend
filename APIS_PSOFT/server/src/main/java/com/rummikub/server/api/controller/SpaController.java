@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class SpaController {
 
-    // Excluye rutas con extensión (.js, .css, .svg…): el Resource Handler las sirve directamente.
-    @GetMapping(value = {"/", "/{path:(?!api)[^\\.]*}", "/{path:(?!api)[^\\.]*}/**"})
+    // Solo rutas de React Router: sin extensión y que no sean /api/** ni /assets/**
+    @GetMapping(value = {"/", "/{path:(?!api$|assets$)[^\\.]*}", "/{path:(?!api$|assets$)[^\\.]*}/**"})
     public String forwardToIndex() {
         return "forward:/index.html";
     }
