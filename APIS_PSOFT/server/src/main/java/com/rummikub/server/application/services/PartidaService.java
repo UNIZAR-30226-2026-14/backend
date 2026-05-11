@@ -63,6 +63,7 @@ public class PartidaService {
     private static final String ESTADO_FINISHED = "FINISHED";
 
     private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOK])(1[0-3]|0?[1-9])([ADN]{0,3})$");
+    private static final Pattern TILE_PREFIX_PATTERN = Pattern.compile("^([ADN]{1,3})([RBOK])(1[0-3]|0?[1-9])$");
     private static final Pattern MARKET_OBJECT_PATTERN = Pattern.compile("^(obj[1-7])$", Pattern.CASE_INSENSITIVE);
     private static final List<String> MARKET_OBJECT_CODES = List.of("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7");
     private static final Map<String, Integer> MARKET_OBJECT_VALUES = Map.of(
@@ -2014,14 +2015,23 @@ public class PartidaService {
         if ("J".equals(tile) || JOKER_CANONICAL.equals(tile) || "J1".equals(tile) || "J2".equals(tile)) {
             return JOKER_CANONICAL;
         }
-        Matcher matcher = TILE_PATTERN.matcher(tile);
-        if (!matcher.matches()) {
-            throw new IllegalArgumentException("Formato de ficha invalido: " + tileRaw);
+        Matcher suffixMatcher = TILE_PATTERN.matcher(tile);
+        if (suffixMatcher.matches()) {
+            String color = suffixMatcher.group(1);
+            int value = Integer.parseInt(suffixMatcher.group(2));
+            String suffix = canonicalizeArcadeSuffix(suffixMatcher.group(3));
+            return color + String.format("%02d", value) + suffix;
         }
-        String color = matcher.group(1);
-        int value = Integer.parseInt(matcher.group(2));
-        String suffix = canonicalizeArcadeSuffix(matcher.group(3));
-        return color + String.format("%02d", value) + suffix;
+
+        Matcher prefixMatcher = TILE_PREFIX_PATTERN.matcher(tile);
+        if (prefixMatcher.matches()) {
+            String prefix = canonicalizeArcadeSuffix(prefixMatcher.group(1));
+            String color = prefixMatcher.group(2);
+            int value = Integer.parseInt(prefixMatcher.group(3));
+            return color + String.format("%02d", value) + prefix;
+        }
+
+        throw new IllegalArgumentException("Formato de ficha invalido: " + tileRaw);
     }
 
     private boolean isJoker(String tile) {
@@ -2064,7 +2074,8 @@ public class PartidaService {
     }
 
     private int parseValue(String tile) {
-        Matcher matcher = Pattern.compile("^[RBOK](0[1-9]|1[0-3])([ADN]{0,3})$").matcher(tile.toUpperCase(Locale.ROOT));
+        String normalized = normalizeTile(tile);
+        Matcher matcher = Pattern.compile("^[RBOK](0[1-9]|1[0-3])([ADN]{0,3})$").matcher(normalized);
         if (!matcher.matches()) {
             throw new IllegalArgumentException("No se pudo extraer valor de ficha: " + tile);
         }
