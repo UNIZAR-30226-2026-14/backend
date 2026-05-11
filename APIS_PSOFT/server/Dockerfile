@@ -15,7 +15,7 @@ COPY --from=build /build/target/server-0.0.1-SNAPSHOT.jar app.jar
 COPY public /app/public
 
 ENV SERVER_SSL_ENABLED=false
-ENV SPRING_WEB_RESOURCES_STATIC_LOCATIONS=file:/app/public/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/,classpath:/public/
+ENV STATIC_PUBLIC_PATH=/app/public/
 
 EXPOSE 8080
 
