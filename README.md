@@ -297,15 +297,13 @@ Ejemplos:
 - normal: `R07`, `B12`
 - dorada: `R07D`
 - arcoiris: `O08A`
-- negativa: `K10N`
-- combinadas: `R07AD`, `B11AN`, `O05DN`, `K03ADN`
 
 Reglas de formato:
 
 - Color: `R`, `B`, `O`, `K`
 - Valor: `01` a `13`
-- Sufijos arcade permitidos: `A` (arcoiris), `D` (dorada), `N` (negativa)
-- Orden canónico al serializar: `A`, `D`, `N`
+- Sufijos arcade permitidos: `A` (arcoiris), `D` (dorada)
+- Orden canónico al serializar: `A`, `D`
 
 Notas:
 
