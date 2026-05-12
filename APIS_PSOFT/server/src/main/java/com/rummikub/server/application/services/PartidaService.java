@@ -16,6 +16,8 @@ import com.rummikub.server.infraestructure.jpa.repository.JugadorRepository;
 import com.rummikub.server.infraestructure.jpa.repository.ParticipacionRepository;
 import com.rummikub.server.infraestructure.jpa.repository.PartidaRepository;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class PartidaService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PartidaService.class);
 
     private static final int MAX_TURN_SLOTS = 4;
     private static final int INITIAL_HAND_SIZE = 14;
@@ -713,8 +717,19 @@ public class PartidaService {
                 break;
             }
 
-            BotMoveResponse moveResponse = askBotMove(partida, botTurn);
-            applyBotMove(partida, botTurn, moveResponse, now);
+            try {
+                BotMoveResponse moveResponse = askBotMove(partida, botTurn);
+                applyBotMove(partida, botTurn, moveResponse, now);
+            } catch (RuntimeException ex) {
+                LOGGER.warn(
+                        "Fallo ejecutando turno automatico del bot {} en partida {}. Se aplica fallback de robar/pasar.",
+                        botTurn.getJugador().getId(),
+                        partida.getIdPartida(),
+                        ex
+                );
+                drawOneTileIfPossible(partida, botTurn);
+                advanceTurn(partida, now);
+            }
             partida = partidaRepository.save(partida);
             lastState = toPartidaDTO(partida);
         }
