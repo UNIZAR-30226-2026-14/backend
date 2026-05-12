@@ -70,7 +70,7 @@ public class InvitacionPartidaController {
             @PathVariable Integer idInvitado,
             @PathVariable Integer idPartida,
             @RequestHeader("Authorization") String authorizationHeader) {
-        authService.assertSessionOwner(authorizationHeader, idEmisor);
+        authService.assertSessionOwner(authorizationHeader, idInvitado);
         invitacionPartidaService.delete(idEmisor, idInvitado, idPartida);
         return ResponseEntity.noContent().build();
     }
