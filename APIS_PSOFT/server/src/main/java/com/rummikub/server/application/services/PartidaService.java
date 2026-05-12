@@ -675,6 +675,7 @@ public class PartidaService {
             botParticipacion.setHabilidadesActuales("");
             botParticipacion.setManoActual("");
             botParticipacion.setOrdenTurno(null);
+            botParticipacion.setConectado(true);
             participacionRepository.save(botParticipacion);
         }
 
@@ -1539,6 +1540,7 @@ public class PartidaService {
         botParticipacion.setManoActual(participacion.getManoActual());
         botParticipacion.setOrdenTurno(participacion.getOrdenTurno());
         botParticipacion.setTurnosInactivo(0);
+        botParticipacion.setConectado(true);
 
         participacionRepository.delete(participacion);
         return participacionRepository.save(botParticipacion);

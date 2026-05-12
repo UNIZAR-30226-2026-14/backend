@@ -87,6 +87,7 @@ public class Mapper {
                 .manoActual(normalizeSerializedTiles(participacion.getManoActual()))
                 .ordenTurno(participacion.getOrdenTurno())
                 .turnosInactivo(participacion.getTurnosInactivo())
+                .conectado(participacion.isConectado())
                 .build();
     }
 

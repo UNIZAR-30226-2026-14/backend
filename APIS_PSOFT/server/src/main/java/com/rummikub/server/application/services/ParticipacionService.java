@@ -75,6 +75,14 @@ public class ParticipacionService {
         participacionRepository.deleteById(id);
     }
 
+    public ParticipacionDTO updateConexion(Integer idJugador, Integer idPartida, boolean conectado) {
+        ParticipacionId id = new ParticipacionId(idJugador, idPartida);
+        ParticipacionEntity entity = participacionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Participacion no encontrada"));
+        entity.setConectado(conectado);
+        return Mapper.toDTO(participacionRepository.save(entity));
+    }
+
     private ParticipacionDTO save(ParticipacionDTO dto) {
         JugadorEntity jugador = jugadorRepository.findById(dto.getIdJugador())
                 .orElseThrow(() -> new NoSuchElementException("Jugador no encontrado: " + dto.getIdJugador()));
@@ -94,6 +102,7 @@ public class ParticipacionService {
         entity.setOrdenTurno(dto.getOrdenTurno());
         if (existing == null) {
             entity.setTurnosInactivo(dto.getTurnosInactivo());
+            entity.setConectado(true);
         }
         return Mapper.toDTO(participacionRepository.save(entity));
     }

@@ -2,12 +2,14 @@ package com.rummikub.server.api.controller;
 
 import com.rummikub.server.api.dto.ParticipacionDTO;
 import com.rummikub.server.api.dto.participacion.CreateParticipacionRequest;
+import com.rummikub.server.api.dto.participacion.UpdateConexionParticipacionRequest;
 import com.rummikub.server.api.dto.participacion.UpdateParticipacionRequest;
 import com.rummikub.server.application.services.ParticipacionService;
 import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -68,5 +70,13 @@ public class ParticipacionController {
                 .habilidadesActuales(request.getHabilidadesActuales())
                 .build();
         return participacionService.update(idJugador, idPartida, dto);
+    }
+
+    @PatchMapping("/{idJugador}/{idPartida}/conexion")
+    public ParticipacionDTO updateConexion(
+            @PathVariable Integer idJugador,
+            @PathVariable Integer idPartida,
+            @Valid @RequestBody UpdateConexionParticipacionRequest request) {
+        return participacionService.updateConexion(idJugador, idPartida, request.getConectado());
     }
 }

@@ -21,4 +21,5 @@ public class ParticipacionDTO {
     private String manoActual;
     private Integer ordenTurno;
     private int turnosInactivo;
+    private boolean conectado;
 }
