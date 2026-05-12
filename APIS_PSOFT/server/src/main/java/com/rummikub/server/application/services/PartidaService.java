@@ -1154,19 +1154,18 @@ public class PartidaService {
         if ("J".equals(t) || JOKER_CANONICAL.equals(t)) {
             return JOKER_CANONICAL;
         }
-        if (!t.matches("^[RBOK](0[1-9]|1[0-3])$")) {
+        try {
+            return normalizeTile(t);
+        } catch (IllegalArgumentException ex) {
             throw new IllegalStateException("Formato de ficha IA invalido: " + iaTile);
         }
-        return t;
     }
 
     private String toBackendTile(String iaTile) {
         if (JOKER_CANONICAL.equals(iaTile) || "J".equals(iaTile)) {
             return JOKER_CANONICAL;
         }
-        char color = iaTile.charAt(0);
-        int value = Integer.parseInt(iaTile.substring(1));
-        return color + String.valueOf(value);
+        return normalizeTile(iaTile);
     }
 
     private List<String> flattenGroups(List<List<String>> groups) {
