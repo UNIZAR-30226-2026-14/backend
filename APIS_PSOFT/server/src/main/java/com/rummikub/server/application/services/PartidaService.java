@@ -385,7 +385,7 @@ public class PartidaService {
             PartidaEntity partida = mustGetRunningPartida(idPartida);
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
             validatePlayerTurn(partida, participacion);
-            maybeReplaceInactivePlayerWithBot(partida, participacion);
+            resetPlayerInactivity(participacion);
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
             return botUpdated == null ? attachFichasPorJugador(updated) : botUpdated;
@@ -410,10 +410,10 @@ public class PartidaService {
 
             participacion.setManoActual(serializeTileList(hand));
             participacion.setFichasActuales(hand.size());
+            participacion.setTurnosInactivo(0);
             participacionRepository.save(participacion);
 
             partida.setBolsa(serializeTileList(bag));
-            maybeReplaceInactivePlayerWithBot(partida, participacion);
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
             PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
             PartidaDTO result = botUpdated == null ? updated : botUpdated;
@@ -446,6 +446,7 @@ public class PartidaService {
 
             participacion.setManoActual(serializeTileList(hand));
             participacion.setFichasActuales(hand.size());
+            participacion.setTurnosInactivo(0);
             participacionRepository.save(participacion);
 
             partida.setBolsa(serializeTileList(bag));
@@ -1534,6 +1535,16 @@ public class PartidaService {
             return;
         }
         participacionRepository.save(participacion);
+    }
+
+    private void resetPlayerInactivity(ParticipacionEntity participacion) {
+        if (participacion == null || isBotPlayer(participacion)) {
+            return;
+        }
+        if (participacion.getTurnosInactivo() != 0) {
+            participacion.setTurnosInactivo(0);
+            participacionRepository.save(participacion);
+        }
     }
 
     private ParticipacionEntity replaceParticipationWithBot(PartidaEntity partida, ParticipacionEntity participacion) {
