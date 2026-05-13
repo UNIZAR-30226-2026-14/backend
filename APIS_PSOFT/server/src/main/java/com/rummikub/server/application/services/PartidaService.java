@@ -58,7 +58,6 @@ public class PartidaService {
     private static final String JOKER_CANONICAL = "J*";
     private static final int ARCADE_GOLD_DUPLICATES_PER_VALUE = 1;
     private static final int ARCADE_RAINBOW_DUPLICATES_PER_VALUE = 1;
-    private static final int ARCADE_NEGATIVE_DUPLICATES_PER_VALUE = 1;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String ESTADO_WAITING = "WAITING";
@@ -66,8 +65,8 @@ public class PartidaService {
     private static final String ESTADO_PAUSED = "PAUSED";
     private static final String ESTADO_FINISHED = "FINISHED";
 
-    private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOK])(1[0-3]|0?[1-9])([ADN]{0,3})$");
-    private static final Pattern TILE_PREFIX_PATTERN = Pattern.compile("^([ADN]{1,3})([RBOK])(1[0-3]|0?[1-9])$");
+    private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOK])(1[0-3]|0?[1-9])([AD]?)$");
+    private static final Pattern TILE_PREFIX_PATTERN = Pattern.compile("^([AD])([RBOK])(1[0-3]|0?[1-9])$");
     private static final Pattern MARKET_OBJECT_PATTERN = Pattern.compile("^(obj[1-7])$", Pattern.CASE_INSENSITIVE);
     private static final List<String> MARKET_OBJECT_CODES = List.of("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7");
     private static final Map<String, Integer> MARKET_OBJECT_VALUES = Map.of(
@@ -1345,9 +1344,6 @@ public class PartidaService {
                 points += 30;
             } else {
                 int base = parseValue(tile);
-                if (isArcadeNegative(tile)) {
-                    base = -base;
-                }
                 if (isArcadeGold(tile)) {
                     base = base * 2;
                 }
@@ -1403,7 +1399,7 @@ public class PartidaService {
         bag.add(JOKER_CANONICAL);
 
         if (modoArcade) {
-            // En arcade las habilidades son sufijos de la ficha base (A, D, N), igual que IA.
+            // En arcade las habilidades son sufijos de la ficha base (A, D), igual que IA.
             for (String color : colors) {
                 for (int value = 1; value <= 13; value++) {
                     for (int copies = 0; copies < ARCADE_GOLD_DUPLICATES_PER_VALUE; copies++) {
@@ -1411,9 +1407,6 @@ public class PartidaService {
                     }
                     for (int copies = 0; copies < ARCADE_RAINBOW_DUPLICATES_PER_VALUE; copies++) {
                         bag.add(color + String.format("%02d", value) + "A");
-                    }
-                    for (int copies = 0; copies < ARCADE_NEGATIVE_DUPLICATES_PER_VALUE; copies++) {
-                        bag.add(color + String.format("%02d", value) + "N");
                     }
                 }
             }
@@ -2091,7 +2084,7 @@ public class PartidaService {
 
     private int parseValue(String tile) {
         String normalized = normalizeTile(tile);
-        Matcher matcher = Pattern.compile("^[RBOK](0[1-9]|1[0-3])([ADN]{0,3})$").matcher(normalized);
+        Matcher matcher = Pattern.compile("^[RBOK](0[1-9]|1[0-3])([AD]?)$").matcher(normalized);
         if (!matcher.matches()) {
             throw new IllegalArgumentException("No se pudo extraer valor de ficha: " + tile);
         }
@@ -2114,31 +2107,15 @@ public class PartidaService {
         return normalized.matches("^[RBOK](0[1-9]|1[0-3]).*A.*$");
     }
 
-    private boolean isArcadeNegative(String tile) {
-        if (tile == null || tile.isBlank()) {
-            return false;
-        }
-        String normalized = tile.trim().toUpperCase(Locale.ROOT);
-        return normalized.matches("^[RBOK](0[1-9]|1[0-3]).*N.*$");
-    }
-
     private String canonicalizeArcadeSuffix(String rawSuffix) {
         if (rawSuffix == null || rawSuffix.isBlank()) {
             return "";
         }
-        boolean hasA = false;
-        boolean hasD = false;
-        boolean hasN = false;
-        for (char c : rawSuffix.toUpperCase(Locale.ROOT).toCharArray()) {
-            if (c == 'A') hasA = true;
-            if (c == 'D') hasD = true;
-            if (c == 'N') hasN = true;
+        String normalized = rawSuffix.trim().toUpperCase(Locale.ROOT);
+        if (!"A".equals(normalized) && !"D".equals(normalized)) {
+            throw new IllegalArgumentException("La ficha arcade solo puede tener una habilidad A o D");
         }
-        StringBuilder suffix = new StringBuilder();
-        if (hasA) suffix.append('A');
-        if (hasD) suffix.append('D');
-        if (hasN) suffix.append('N');
-        return suffix.toString();
+        return normalized;
     }
 
     private String safe(String value) {
