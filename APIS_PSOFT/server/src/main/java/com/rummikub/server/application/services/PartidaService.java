@@ -321,8 +321,7 @@ public class PartidaService {
                 initializeGameState(partida);
             }
             partida = partidaRepository.save(partida);
-            PartidaDTO result = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
-            return result == null ? toPartidaDTO(partida) : result;
+            return toPartidaDTO(partida);
         }
     }
 
