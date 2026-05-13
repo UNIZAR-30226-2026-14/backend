@@ -124,6 +124,18 @@ public class PartidaService {
                 .toList();
     }
 
+    public List<PartidaDTO> getByUsuario(Integer usuarioId) {
+        if (usuarioId == null) {
+            return List.of();
+        }
+        return participacionRepository.findByJugador_Id(usuarioId).stream()
+                .map(ParticipacionEntity::getPartida)
+                .filter(partida -> partida != null)
+                .map(Mapper::toDTO)
+                .map(this::attachFichasPorJugador)
+                .toList();
+    }
+
     @Transactional
     public PartidaDTO getById(Integer idPartida) {
         PartidaEntity partida = partidaRepository.findById(idPartida)
@@ -710,6 +722,7 @@ public class PartidaService {
 
         PartidaDTO lastState = null;
         int safety = 0;
+        boolean botUnavailable = false;
         while (partida.isCorriendo() && ESTADO_RUNNING.equals(partida.getEstado()) && safety < MAX_AUTOMATED_BOT_TURNS) {
             safety++;
             ParticipacionEntity botTurn = getParticipacionByTurn(partida.getIdPartida(), partida.getTurno());
@@ -717,9 +730,27 @@ public class PartidaService {
                 break;
             }
 
+            if (botUnavailable) {
+                drawOneTileIfPossible(partida, botTurn);
+                advanceTurn(partida, now);
+                partida = partidaRepository.save(partida);
+                lastState = toPartidaDTO(partida);
+                continue;
+            }
+
             try {
                 BotMoveResponse moveResponse = askBotMove(partida, botTurn);
                 applyBotMove(partida, botTurn, moveResponse, now);
+            } catch (BotUnavailableException ex) {
+                botUnavailable = true;
+                LOGGER.warn(
+                        "IA no disponible ejecutando turno automatico del bot {} en partida {}. Se omiten mas llamadas IA en este ciclo.",
+                        botTurn.getJugador().getId(),
+                        partida.getIdPartida(),
+                        ex
+                );
+                drawOneTileIfPossible(partida, botTurn);
+                advanceTurn(partida, now);
             } catch (RuntimeException ex) {
                 LOGGER.warn(
                         "Fallo ejecutando turno automatico del bot {} en partida {}. Se aplica fallback de robar/pasar.",
