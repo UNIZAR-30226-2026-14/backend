@@ -83,20 +83,27 @@ public class ListaDeAmigosService {
             throw new IllegalArgumentException("El estado es obligatorio");
         }
 
-        ListaDeAmigosId id = new ListaDeAmigosId(jugadorId, amigoId);
-        ListaDeAmigosEntity relacion = listaDeAmigosRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Relacion de amistad no encontrada"));
+        ListaDeAmigosEntity relacion = findRelacionEitherOrder(jugadorId, amigoId);
 
         relacion.setEstado(estado);
         return Mapper.toDTO(listaDeAmigosRepository.save(relacion));
     }
 
     public void delete(Integer jugadorId, Integer amigoId) {
-        ListaDeAmigosId id = new ListaDeAmigosId(jugadorId, amigoId);
-        if (!listaDeAmigosRepository.existsById(id)) {
-            throw new NoSuchElementException("Relacion de amistad no encontrada");
+        ListaDeAmigosEntity relacion = findRelacionEitherOrder(jugadorId, amigoId);
+        listaDeAmigosRepository.delete(relacion);
+    }
+
+    private ListaDeAmigosEntity findRelacionEitherOrder(Integer jugadorId, Integer amigoId) {
+        ListaDeAmigosId directa = new ListaDeAmigosId(jugadorId, amigoId);
+        ListaDeAmigosEntity relacion = listaDeAmigosRepository.findById(directa).orElse(null);
+        if (relacion != null) {
+            return relacion;
         }
-        listaDeAmigosRepository.deleteById(id);
+
+        ListaDeAmigosId inversa = new ListaDeAmigosId(amigoId, jugadorId);
+        return listaDeAmigosRepository.findById(inversa)
+                .orElseThrow(() -> new NoSuchElementException("Relacion de amistad no encontrada"));
     }
 
     private ListaDeAmigosDTO enrichForJugador(Integer jugadorId, ListaDeAmigosDTO dto) {

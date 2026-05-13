@@ -1,4 +1,4 @@
-# RummiPlus Backend - Guia para Frontend
+﻿# RummiPlus Backend - Guia para Frontend
 
 ## 1. Base URL
 
@@ -134,14 +134,20 @@ Las peticiones JSON no cambian; solo cambia el esquema (`https`) y el puerto (`8
 - `GET /api/jugadores/{id}/amigos/perfiles`
 - `GET /api/jugadores/{id}/amigos/perfiles?estado=ACEPTADO`
 - `GET /api/amigos`
-    - tiene campos amigo1 y amigo2, el 1 es el que envía la solicitud 
+    - tiene campos amigo1 y amigo2, el 1 es el que envÃ­a la solicitud 
 - `POST /api/amigos`
 - `PATCH /api/amigos/{jugadorId}/{amigoId}/estado`
+- `DELETE /api/amigos/{jugadorId}/{amigoId}`
 - `DELETE /api/admin/wipe` (unico DELETE)
 
 En jugador se distinguen ahora `skinFichas` y `skinTablero` (en lugar de un unico campo de cosmeticos).
 En jugador, el campo de imagen expuesto por la API es `imagenPerfil`.
 En amistades, las respuestas incluyen IDs, nombres y estado.
+En amistades:
+
+- `PATCH /api/amigos/{jugadorId}/{amigoId}/estado` sirve para aceptar o rechazar una solicitud cambiando su estado.
+- `DELETE /api/amigos/{jugadorId}/{amigoId}` elimina la relacion de amistad o la solicitud.
+- Tanto `PATCH` como `DELETE` aceptan los ids en cualquiera de los dos ordenes.
 
 ## 7. Estado de partida (nuevo)
 
@@ -317,7 +323,7 @@ Reglas de formato:
 - Color: `R`, `B`, `O`, `K`
 - Valor: `01` a `13`
 - Sufijos arcade permitidos: `A` (arcoiris), `D` (dorada)
-- Orden canónico al serializar: `A`, `D`
+- Orden canÃ³nico al serializar: `A`, `D`
 
 Notas:
 
