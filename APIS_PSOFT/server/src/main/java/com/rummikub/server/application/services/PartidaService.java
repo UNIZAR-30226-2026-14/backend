@@ -78,12 +78,15 @@ public class PartidaService {
             "obj6", 60,
             "obj7", 70
     );
-    private static final List<String> ARCADE_EVENTS = List.of(
-            "LLUVIA_DORADA",
-            "CAMBIO_DE_COLOR",
-            "TURNO_DOBLE",
-            "ROBO_EXTRA",
-            "BLOQUEO_MERCADO"
+    private static final List<String> ARCADE_BASE_EVENTS = List.of(
+            "+pieza",
+            "50porcien"
+    );
+    private static final List<String> ARCADE_PROHIBITED_COLORS = List.of(
+            "rojo",
+            "azul",
+            "naranja",
+            "negro"
     );
 
     private final PartidaRepository partidaRepository;
@@ -1520,8 +1523,11 @@ public class PartidaService {
     }
 
     private String getRandomArcadeEvent() {
-        int index = ThreadLocalRandom.current().nextInt(ARCADE_EVENTS.size());
-        return ARCADE_EVENTS.get(index);
+        int index = ThreadLocalRandom.current().nextInt(ARCADE_BASE_EVENTS.size() + ARCADE_PROHIBITED_COLORS.size());
+        if (index < ARCADE_BASE_EVENTS.size()) {
+            return ARCADE_BASE_EVENTS.get(index);
+        }
+        return "prohibido_" + ARCADE_PROHIBITED_COLORS.get(index - ARCADE_BASE_EVENTS.size());
     }
 
     private void maybeReplaceInactivePlayerWithBot(PartidaEntity partida, ParticipacionEntity participacion) {

@@ -159,6 +159,20 @@ Comportamiento de modos:
 - `modoArcade=false`: mercado deshabilitado y `eventoActual` vacio.
 - `modoArcade=true`: mercado habilitado y `eventoActual` se usa en partida.
 
+Formato actual de `eventoActual` en arcade:
+
+- `+pieza`
+- `50porcien`
+- `prohibido_rojo`
+- `prohibido_azul`
+- `prohibido_naranja`
+- `prohibido_negro`
+
+Nota:
+
+- Backend genera y devuelve esos valores en `eventoActual`.
+- La aplicacion visual/funcional del evento puede gestionarse desde frontend.
+
 Al iniciar (`/iniciar`):
 
 - Se genera bolsa completa aleatoria (106 fichas).
