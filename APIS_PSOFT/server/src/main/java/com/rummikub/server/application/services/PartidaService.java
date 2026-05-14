@@ -731,8 +731,8 @@ public class PartidaService {
                 break;
             }
 
-            drawOneTileIfPossible(partida, botTurn);
-            advanceTurn(partida, now);
+            BotMoveResponse moveResponse = askBotMove(partida, botTurn);
+            applyBotMove(partida, botTurn, moveResponse, now);
             partida = partidaRepository.save(partida);
             lastState = toPartidaDTO(partida);
         }
