@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
+import java.util.Map;
 
 public class BotMoveRequest {
 
@@ -28,6 +29,8 @@ public class BotMoveRequest {
 
     @JsonProperty("turn_number")
     private Integer turnNumber;
+
+    private Map<String, Object> arcade;
 
     public List<List<String>> getBoard() {
         return board;
@@ -99,5 +102,13 @@ public class BotMoveRequest {
 
     public void setTurnNumber(Integer turnNumber) {
         this.turnNumber = turnNumber;
+    }
+
+    public Map<String, Object> getArcade() {
+        return arcade;
+    }
+
+    public void setArcade(Map<String, Object> arcade) {
+        this.arcade = arcade;
     }
 }

@@ -23,6 +23,12 @@ public class BotMoveDTO {
     @JsonProperty("new_board")
     private List<List<String>> newBoard;
 
+    @JsonProperty("item_use")
+    private BotItemUseDTO itemUse;
+
+    @JsonProperty("shop_choice")
+    private BotShopChoiceDTO shopChoice;
+
     public String getMoveType() {
         return moveType;
     }
@@ -69,5 +75,21 @@ public class BotMoveDTO {
 
     public void setNewBoard(List<List<String>> newBoard) {
         this.newBoard = newBoard;
+    }
+
+    public BotItemUseDTO getItemUse() {
+        return itemUse;
+    }
+
+    public void setItemUse(BotItemUseDTO itemUse) {
+        this.itemUse = itemUse;
+    }
+
+    public BotShopChoiceDTO getShopChoice() {
+        return shopChoice;
+    }
+
+    public void setShopChoice(BotShopChoiceDTO shopChoice) {
+        this.shopChoice = shopChoice;
     }
 }

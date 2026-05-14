@@ -3,6 +3,7 @@ package com.rummikub.server.application.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rummikub.server.api.dto.PartidaDTO;
 import com.rummikub.server.api.dto.ParticipacionDTO;
+import com.rummikub.server.api.dto.bot.BotItemUseDTO;
 import com.rummikub.server.api.dto.bot.BotMoveDTO;
 import com.rummikub.server.api.dto.bot.BotMoveRequest;
 import com.rummikub.server.api.dto.bot.BotMoveResponse;
@@ -62,6 +63,7 @@ public class PartidaService {
     private static final int BOT_LEVEL = 5;
     private static final double BOT_RANDOMNESS = 0.20;
     private static final int MAX_AUTOMATED_BOT_TURNS = 16;
+    private static final int MAX_BOT_ARCADE_ITEM_PHASES = 4;
     private static final int MARKET_OBJECTS_PER_PLAYER = 3;
     private static final int MARKET_ITEM_STOCK = 1;
     private static final int SWAP_ON_FAIL_VISIBLE_TILES = 3;
@@ -103,6 +105,17 @@ public class PartidaService {
             "SMOKE_BOMB", 6,
             "CHILI_PEPPER", 6,
             "GLASS_CEILING", 6
+    );
+    private static final Set<String> IA_SUPPORTED_MARKET_OBJECTS = Set.of(
+            "GUARDIAN_ANGEL",
+            "CRYSTAL_BALL",
+            "MIDAS_TOUCH",
+            "PLUS_FOUR",
+            "SWAP_ON_FAIL",
+            "WHITE_GLOVE",
+            "SMOKE_BOMB",
+            "CHILI_PEPPER",
+            "GLASS_CEILING"
     );
     private static final String EFFECT_PREFIX = "FX:";
     private static final List<String> ARCADE_BASE_EVENTS = List.of(
@@ -158,8 +171,8 @@ public class PartidaService {
     }
 
     public List<PartidaDTO> getAll() {
-        List<PartidaDTO> partidas = partidaRepository.findAll().stream()
-                .map(Mapper::toDTO)
+        List<PartidaDTO> partidas = partidaRepository.findAllSummaries().stream()
+                .map(this::toSummaryDTO)
                 .toList();
         return attachFichasPorJugador(partidas);
     }
@@ -168,10 +181,8 @@ public class PartidaService {
         if (usuarioId == null) {
             return List.of();
         }
-        List<PartidaDTO> partidas = participacionRepository.findByJugador_Id(usuarioId).stream()
-                .map(ParticipacionEntity::getPartida)
-                .filter(partida -> partida != null)
-                .map(Mapper::toDTO)
+        List<PartidaDTO> partidas = partidaRepository.findSummariesByUsuarioId(usuarioId).stream()
+                .map(this::toSummaryDTO)
                 .toList();
         return attachFichasPorJugador(partidas);
     }
@@ -1045,6 +1056,13 @@ public class PartidaService {
     }
 
     private BotMoveResponse askBotMove(PartidaEntity partida, ParticipacionEntity botParticipacion) {
+        return askBotMove(partida, botParticipacion, List.of());
+    }
+
+    private BotMoveResponse askBotMove(
+            PartidaEntity partida,
+            ParticipacionEntity botParticipacion,
+            List<String> itemsUsedThisTurn) {
         BotMoveRequest payload = new BotMoveRequest();
         payload.setBoard(toIaBoard(parseMesaGroups(partida.getConjuntoMesa())));
         payload.setPoolCount(parseTileList(partida.getBolsa()).size());
@@ -1054,7 +1072,107 @@ public class PartidaService {
         payload.setLevel(BOT_LEVEL);
         payload.setRandomness(BOT_RANDOMNESS);
         payload.setTurnNumber(partida.getTurno());
+        payload.setArcade(buildIaArcadePayload(partida, botParticipacion, itemsUsedThisTurn));
         return botIntegrationService.askMove(payload);
+    }
+
+    private Map<String, Object> buildIaArcadePayload(
+            PartidaEntity partida,
+            ParticipacionEntity botParticipacion,
+            List<String> itemsUsedThisTurn) {
+        if (partida == null || botParticipacion == null || !partida.isModoArcade()) {
+            return null;
+        }
+
+        Map<String, Object> arcade = new LinkedHashMap<>();
+        arcade.put("enabled", true);
+
+        String blockedColor = toIaBlockedColor(partida.getEventoActual());
+        if (blockedColor != null) {
+            arcade.put("blocked_color", blockedColor);
+        }
+        if (hasActiveEffect(botParticipacion, "GLASS_CEILING")) {
+            arcade.put("min_play_points", 30);
+        }
+
+        List<String> inventory = getSupportedInventory(botParticipacion);
+        arcade.put("my_items", inventory);
+        arcade.put("opponent_item_counts", getIaItemCounts(partida.getIdPartida(), botParticipacion.getJugador().getId()));
+        arcade.put("time_limit_s", hasActiveEffect(botParticipacion, "CHILI_PEPPER")
+                ? TURN_TIMEOUT_SECONDS / 2
+                : TURN_TIMEOUT_SECONDS);
+        if ("50porcien".equalsIgnoreCase(safe(partida.getEventoActual()))) {
+            arcade.put("shop_discount", 0.5);
+        }
+        arcade.put("draw_at_turn_start", "+pieza".equalsIgnoreCase(safe(partida.getEventoActual())));
+        arcade.put("items_used_this_turn", itemsUsedThisTurn == null ? List.of() : new ArrayList<>(itemsUsedThisTurn));
+        arcade.put("guardian_angel_active", false);
+
+        Map<String, Object> shop = buildIaShopPayload(partida, botParticipacion, inventory);
+        if (shop != null) {
+            arcade.put("shop", shop);
+        }
+        return arcade;
+    }
+
+    private String toIaBlockedColor(String eventoActual) {
+        if (eventoActual == null || !eventoActual.startsWith("prohibido_")) {
+            return null;
+        }
+        return switch (eventoActual.substring("prohibido_".length()).toLowerCase(Locale.ROOT)) {
+            case "rojo" -> "R";
+            case "azul" -> "B";
+            case "naranja" -> "O";
+            case "negro" -> "K";
+            default -> null;
+        };
+    }
+
+    private List<String> getSupportedInventory(ParticipacionEntity participacion) {
+        return parsePurchasedObjectCodes(participacion.getHabilidadesActuales()).stream()
+                .filter(IA_SUPPORTED_MARKET_OBJECTS::contains)
+                .toList();
+    }
+
+    private List<Integer> getIaItemCounts(Integer idPartida, Integer idBotJugador) {
+        List<Integer> counts = new ArrayList<>();
+        ParticipacionEntity bot = mustGetParticipacion(idPartida, idBotJugador);
+        counts.add(getSupportedInventory(bot).size());
+        for (ParticipacionEntity p : getOrderedParticipaciones(idPartida)) {
+            if (!p.getJugador().getId().equals(idBotJugador)) {
+                counts.add(getSupportedInventory(p).size());
+            }
+        }
+        return counts;
+    }
+
+    private Map<String, Object> buildIaShopPayload(
+            PartidaEntity partida,
+            ParticipacionEntity botParticipacion,
+            List<String> inventory) {
+        if (inventory != null && inventory.size() >= MARKET_OBJECTS_PER_PLAYER) {
+            return null;
+        }
+        LinkedHashMap<String, Integer> stock = getOrCreateMarketStockByPlayer(
+                partida,
+                botParticipacion.getJugador().getId()
+        );
+        List<Map<String, Object>> offer = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : stock.entrySet()) {
+            String code = entry.getKey();
+            int units = entry.getValue() == null ? 0 : entry.getValue();
+            Integer price = MARKET_OBJECT_VALUES.get(code);
+            if (units > 0 && price != null && IA_SUPPORTED_MARKET_OBJECTS.contains(code)) {
+                offer.add(Map.of("item", code, "price", price));
+            }
+        }
+        if (offer.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> shop = new LinkedHashMap<>();
+        shop.put("offer", offer);
+        shop.put("balance", botParticipacion.getJugador().getMonedas());
+        return shop;
     }
 
     private List<Integer> getOpponentRackCounts(Integer idPartida, Integer idBotJugador) {
@@ -1079,6 +1197,11 @@ public class PartidaService {
 
         BotMoveDTO move = moveResponse.getMove();
         String moveType = move.getMoveType();
+        if ("use_item".equals(moveType)) {
+            applyBotArcadeItemPhases(partida, botParticipacion, move.getItemUse(), now);
+            return;
+        }
+        applyBotShopChoice(partida, botParticipacion, move);
         switch (moveType) {
             case "pass":
                 drawOneTileIfPossible(partida, botParticipacion);
@@ -1095,6 +1218,143 @@ public class PartidaService {
                 return;
             default:
                 throw new IllegalStateException("Tipo de jugada de IA no soportado: " + moveType);
+        }
+    }
+
+    private void applyBotArcadeItemPhases(
+            PartidaEntity partida,
+            ParticipacionEntity botParticipacion,
+            BotItemUseDTO firstItemUse,
+            LocalDateTime now) {
+        if (!partida.isModoArcade()) {
+            throw new IllegalStateException("La IA pidio usar objeto fuera de modo arcade");
+        }
+
+        List<String> itemsUsedThisTurn = new ArrayList<>();
+        BotItemUseDTO currentItemUse = firstItemUse;
+        for (int phase = 0; phase < MAX_BOT_ARCADE_ITEM_PHASES; phase++) {
+            String usedCode = applyBotItemUseOrDeny(partida, botParticipacion, currentItemUse);
+            if (usedCode != null && !itemsUsedThisTurn.contains(usedCode)) {
+                itemsUsedThisTurn.add(usedCode);
+            }
+
+            BotMoveResponse nextMove = askBotMove(partida, botParticipacion, itemsUsedThisTurn);
+            if (nextMove == null || nextMove.getMove() == null || nextMove.getMove().getMoveType() == null) {
+                throw new IllegalStateException("La IA no devolvio una jugada valida tras usar objeto");
+            }
+            BotMoveDTO move = nextMove.getMove();
+            if (!"use_item".equals(move.getMoveType())) {
+                applyBotMove(partida, botParticipacion, nextMove, now);
+                return;
+            }
+            currentItemUse = move.getItemUse();
+        }
+
+        BotMoveResponse finalMove = askBotMove(partida, botParticipacion, itemsUsedThisTurn);
+        if (finalMove != null && finalMove.getMove() != null && !"use_item".equals(finalMove.getMove().getMoveType())) {
+            applyBotMove(partida, botParticipacion, finalMove, now);
+            return;
+        }
+        drawOneTileIfPossible(partida, botParticipacion);
+        advanceTurn(partida, now);
+    }
+
+    private String applyBotItemUseOrDeny(
+            PartidaEntity partida,
+            ParticipacionEntity botParticipacion,
+            BotItemUseDTO itemUse) {
+        if (itemUse == null || itemUse.getItem() == null || itemUse.getItem().isBlank()) {
+            return null;
+        }
+
+        String codigoObjeto;
+        try {
+            codigoObjeto = normalizeMarketObjectCode(itemUse.getItem());
+        } catch (IllegalArgumentException ex) {
+            LOGGER.warn("La IA propuso un objeto arcade no soportado: {}", itemUse.getItem());
+            return itemUse.getItem();
+        }
+        if (!IA_SUPPORTED_MARKET_OBJECTS.contains(codigoObjeto)) {
+            LOGGER.warn("La IA propuso un objeto arcade no implementado por backend: {}", codigoObjeto);
+            return codigoObjeto;
+        }
+
+        Integer idObjetivo = resolveIaTargetPlayerId(
+                partida.getIdPartida(),
+                botParticipacion.getJugador().getId(),
+                itemUse.getTargetPlayerIdx()
+        );
+
+        if ("SWAP_ON_FAIL".equals(codigoObjeto) || "CRYSTAL_BALL".equals(codigoObjeto)) {
+            LOGGER.info("Objeto de IA {} denegado: requiere interacción/información que el backend no reinyecta al bot", codigoObjeto);
+            return codigoObjeto;
+        }
+
+        String codigoObjetoObjetivo = null;
+        if ("WHITE_GLOVE".equals(codigoObjeto)) {
+            ParticipacionEntity objetivo = idObjetivo == null ? null : mustGetParticipacion(partida.getIdPartida(), idObjetivo);
+            List<String> objetivoInventario = objetivo == null ? List.of() : getSupportedInventory(objetivo);
+            if (objetivoInventario.isEmpty()) {
+                return codigoObjeto;
+            }
+            codigoObjetoObjetivo = objetivoInventario.get(0);
+        }
+
+        try {
+            usarObjetoMercado(
+                    partida.getIdPartida(),
+                    botParticipacion.getJugador().getId(),
+                    codigoObjeto,
+                    idObjetivo,
+                    codigoObjetoObjetivo,
+                    null,
+                    null
+            );
+        } catch (RuntimeException ex) {
+            LOGGER.warn("Se denego el uso automatico de {} por la IA en partida {}: {}",
+                    codigoObjeto, partida.getIdPartida(), ex.getMessage());
+        }
+        return codigoObjeto;
+    }
+
+    private Integer resolveIaTargetPlayerId(Integer idPartida, Integer idBotJugador, Integer targetPlayerIdx) {
+        if (targetPlayerIdx == null) {
+            return null;
+        }
+        List<ParticipacionEntity> opponents = getOrderedParticipaciones(idPartida).stream()
+                .filter(p -> !p.getJugador().getId().equals(idBotJugador))
+                .toList();
+        if (targetPlayerIdx > 0 && targetPlayerIdx <= opponents.size()) {
+            return opponents.get(targetPlayerIdx - 1).getJugador().getId();
+        }
+        if (targetPlayerIdx >= 0 && targetPlayerIdx < opponents.size()) {
+            return opponents.get(targetPlayerIdx).getJugador().getId();
+        }
+        return null;
+    }
+
+    private void applyBotShopChoice(PartidaEntity partida, ParticipacionEntity botParticipacion, BotMoveDTO move) {
+        if (!partida.isModoArcade() || move.getShopChoice() == null
+                || move.getShopChoice().getBuy() == null || move.getShopChoice().getBuy().isBlank()) {
+            return;
+        }
+
+        String codigoObjeto;
+        try {
+            codigoObjeto = normalizeMarketObjectCode(move.getShopChoice().getBuy());
+        } catch (IllegalArgumentException ex) {
+            LOGGER.warn("La IA propuso comprar un objeto arcade no soportado: {}", move.getShopChoice().getBuy());
+            return;
+        }
+        if (!IA_SUPPORTED_MARKET_OBJECTS.contains(codigoObjeto)) {
+            return;
+        }
+
+        try {
+            comprarObjetoMercado(partida.getIdPartida(), botParticipacion.getJugador().getId(), codigoObjeto);
+        } catch (RuntimeException ex) {
+            LOGGER.warn("Se denego la compra automatica de {} por la IA en partida {}: {}",
+                    codigoObjeto, partida.getIdPartida(), ex.getMessage());
         }
     }
 
@@ -2118,14 +2378,32 @@ public class PartidaService {
                 .build();
     }
 
+    private PartidaDTO toSummaryDTO(PartidaRepository.PartidaSummaryView partida) {
+        if (partida == null) {
+            return null;
+        }
+        return PartidaDTO.builder()
+                .idPartida(partida.getIdPartida())
+                .turno(partida.getTurno())
+                .fecha(partida.getFecha())
+                .eventoActual(partida.getEventoActual())
+                .modoArcade(partida.getModoArcade())
+                .turnoInicio(partida.getTurnoInicio())
+                .estado(partida.getEstado())
+                .ganadorId(partida.getGanadorId())
+                .privada(partida.getPrivada())
+                .corriendo(partida.getCorriendo())
+                .build();
+    }
+
     private PartidaDTO attachFichasPorJugador(PartidaDTO dto) {
         if (dto == null || dto.getIdPartida() == null) {
             return dto;
         }
         Map<Integer, Integer> fichas = new LinkedHashMap<>();
-        for (ParticipacionEntity p : participacionRepository.findByPartida_IdPartida(dto.getIdPartida())) {
-            if (p.getJugador() != null && p.getJugador().getId() != null) {
-                fichas.put(p.getJugador().getId(), p.getFichasActuales());
+        for (ParticipacionRepository.ParticipacionFichasView p : participacionRepository.findFichasByPartidaId(dto.getIdPartida())) {
+            if (p.getIdJugador() != null) {
+                fichas.put(p.getIdJugador(), p.getFichasActuales());
             }
         }
         dto.setFichasPorJugador(fichas);
@@ -2144,14 +2422,13 @@ public class PartidaService {
             return dtos;
         }
         Map<Integer, Map<Integer, Integer>> fichasPorPartida = new HashMap<>();
-        for (ParticipacionEntity p : participacionRepository.findByPartida_IdPartidaIn(partidaIds)) {
-            if (p.getPartida() == null || p.getPartida().getIdPartida() == null
-                    || p.getJugador() == null || p.getJugador().getId() == null) {
+        for (ParticipacionRepository.ParticipacionFichasView p : participacionRepository.findFichasByPartidaIds(partidaIds)) {
+            if (p.getIdPartida() == null || p.getIdJugador() == null) {
                 continue;
             }
             fichasPorPartida
-                    .computeIfAbsent(p.getPartida().getIdPartida(), ignored -> new LinkedHashMap<>())
-                    .put(p.getJugador().getId(), p.getFichasActuales());
+                    .computeIfAbsent(p.getIdPartida(), ignored -> new LinkedHashMap<>())
+                    .put(p.getIdJugador(), p.getFichasActuales());
         }
         for (PartidaDTO dto : dtos) {
             if (dto != null && dto.getIdPartida() != null) {
