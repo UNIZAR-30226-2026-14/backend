@@ -100,6 +100,19 @@ public interface PartidaRepository extends JpaRepository<PartidaEntity, Integer>
         boolean getCorriendo();
     }
 
+    @Query("""
+            select p
+            from PartidaEntity p
+            where p.privada = false
+              and p.corriendo = false
+              and p.estado = :estado
+              and p.turnoInicio is not null
+              and p.turnoInicio <= :cutoff
+            """)
+    java.util.List<PartidaEntity> findExpiredPublicLobbies(
+            @Param("estado") String estado,
+            @Param("cutoff") LocalDateTime cutoff);
+
     interface MatchmakingPartidaView {
         Integer getIdPartida();
 

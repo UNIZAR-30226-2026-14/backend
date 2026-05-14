@@ -59,6 +59,7 @@ public class PartidaService {
     private static final int MAX_TURN_SLOTS = 4;
     private static final int INITIAL_HAND_SIZE = 14;
     private static final int TURN_TIMEOUT_SECONDS = 60;
+    private static final int LOBBY_TIMEOUT_SECONDS = 50;
     private static final String BOT_NAME_PREFIX = "BOT_";
     private static final int BOT_LEVEL = 5;
     private static final double BOT_RANDOMNESS = 0.20;
@@ -867,6 +868,43 @@ public class PartidaService {
                 continue;
             }
             advanceTurnOnTimeout(partidaId, now);
+        }
+        processExpiredPublicLobbies(now);
+    }
+
+    private void processExpiredPublicLobbies(LocalDateTime now) {
+        List<PartidaEntity> expiredLobbies = partidaRepository.findExpiredPublicLobbies(
+                ESTADO_WAITING, now.minusSeconds(LOBBY_TIMEOUT_SECONDS));
+
+        for (PartidaEntity partida : expiredLobbies) {
+            try {
+                synchronized (getTurnMutex(partida.getIdPartida())) {
+                    // Re-leer con lock para evitar condiciones de carrera
+                    PartidaEntity fresh = partidaRepository.findById(partida.getIdPartida()).orElse(null);
+                    if (fresh == null
+                            || fresh.isPrivada()
+                            || fresh.isCorriendo()
+                            || !ESTADO_WAITING.equalsIgnoreCase(safe(fresh.getEstado()))) {
+                        continue;
+                    }
+                    int playerCount = participacionRepository
+                            .findByPartida_IdPartida(fresh.getIdPartida()).size();
+                    if (playerCount > 0) {
+                        // Hay al menos 1 jugador humano: rellenar huecos con bots e iniciar
+                        LOGGER.info("Lobby publico {} expiro con {}/{} jugadores. Rellenando con bots.",
+                                fresh.getIdPartida(), playerCount, MAX_TURN_SLOTS);
+                        iniciar(fresh.getIdPartida());
+                    } else {
+                        // Nadie se unio: cerrar el lobby vacio
+                        LOGGER.info("Lobby publico {} expiro vacio. Cerrando.", fresh.getIdPartida());
+                        fresh.setEstado(ESTADO_FINISHED);
+                        fresh.setCorriendo(false);
+                        partidaRepository.save(fresh);
+                    }
+                }
+            } catch (Exception ex) {
+                LOGGER.warn("Error procesando lobby expirado {}: {}", partida.getIdPartida(), ex.getMessage());
+            }
         }
     }
 
@@ -2307,7 +2345,8 @@ public class PartidaService {
         partida.setConjuntoMesa("");
         partida.setEventoActual("");
         partida.setModoArcade(modoArcade);
-        partida.setTurnoInicio(null);
+        // Se guarda el instante de creacion del lobby para el timer de auto-llenado
+        partida.setTurnoInicio(LocalDateTime.now());
         partida.setEstado(ESTADO_WAITING);
         partida.setGanadorId(null);
         partida.setPuntuacionFinal("");
