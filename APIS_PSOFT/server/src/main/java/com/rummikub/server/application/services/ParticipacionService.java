@@ -10,6 +10,7 @@ import com.rummikub.server.infraestructure.jpa.repository.JugadorRepository;
 import com.rummikub.server.infraestructure.jpa.repository.ParticipacionRepository;
 import com.rummikub.server.infraestructure.jpa.repository.PartidaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -46,13 +47,19 @@ public class ParticipacionService {
         return Mapper.toDTO(entity);
     }
 
+    @Transactional
     public ParticipacionDTO create(ParticipacionDTO dto) {
         if (dto.getIdJugador() == null || dto.getIdPartida() == null) {
             throw new IllegalArgumentException("idJugador e idPartida son obligatorios");
         }
         ParticipacionId id = new ParticipacionId(dto.getIdJugador(), dto.getIdPartida());
-        if (participacionRepository.existsById(id)) {
-            throw new IllegalStateException("La participacion ya existe");
+        ParticipacionEntity existing = participacionRepository.findById(id).orElse(null);
+        if (existing != null) {
+            if (!existing.isConectado()) {
+                existing.setConectado(true);
+                existing = participacionRepository.save(existing);
+            }
+            return Mapper.toDTO(existing);
         }
         return save(dto);
     }
