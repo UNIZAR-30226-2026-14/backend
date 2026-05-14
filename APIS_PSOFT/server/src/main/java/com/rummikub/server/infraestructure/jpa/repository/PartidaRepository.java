@@ -13,4 +13,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PartidaRepository extends JpaRepository<PartidaEntity, Integer>{
     java.util.List<PartidaEntity> findByCorriendoTrue();
+
+    java.util.List<PartidaEntity> findByModoArcadeAndPrivadaAndEstadoAndCorriendoFalse(
+            boolean modoArcade,
+            boolean privada,
+            String estado);
 }

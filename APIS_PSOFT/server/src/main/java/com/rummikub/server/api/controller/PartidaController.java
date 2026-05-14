@@ -41,9 +41,16 @@ public class PartidaController {
     }
 
     @GetMapping
-    public List<PartidaDTO> getAll(@RequestParam(required = false) Integer usuarioId) {
+    public List<PartidaDTO> getAll(
+            @RequestParam(required = false) Integer usuarioId,
+            @RequestParam(required = false) Boolean modoArcade,
+            @RequestParam(required = false) Boolean privada,
+            @RequestParam(required = false) String estado) {
         if (usuarioId != null) {
             return partidaService.getByUsuario(usuarioId);
+        }
+        if (Boolean.FALSE.equals(privada) && "WAITING".equalsIgnoreCase(estado)) {
+            return partidaService.getOpenPublicGames(modoArcade);
         }
         return partidaService.getAll();
     }

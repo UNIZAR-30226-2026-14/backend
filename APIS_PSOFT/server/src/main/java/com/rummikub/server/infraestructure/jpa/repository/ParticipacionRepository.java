@@ -4,12 +4,15 @@ import com.rummikub.server.infraestructure.jpa.entity.ParticipacionEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface ParticipacionRepository extends JpaRepository<ParticipacionEntity, ParticipacionId> {
     List<ParticipacionEntity> findByJugador_Id(Integer jugadorId);
 
     List<ParticipacionEntity> findByPartida_IdPartida(Integer partidaId);
+
+    List<ParticipacionEntity> findByPartida_IdPartidaIn(Collection<Integer> partidaIds);
 
     List<ParticipacionEntity> findByPartida_IdPartidaOrderByJugador_Id(Integer partidaId);
 }

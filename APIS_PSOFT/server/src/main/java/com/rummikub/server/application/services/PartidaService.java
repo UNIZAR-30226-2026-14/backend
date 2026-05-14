@@ -154,22 +154,32 @@ public class PartidaService {
     }
 
     public List<PartidaDTO> getAll() {
-        return partidaRepository.findAll().stream()
+        List<PartidaDTO> partidas = partidaRepository.findAll().stream()
                 .map(Mapper::toDTO)
-                .map(this::attachFichasPorJugador)
                 .toList();
+        return attachFichasPorJugador(partidas);
     }
 
     public List<PartidaDTO> getByUsuario(Integer usuarioId) {
         if (usuarioId == null) {
             return List.of();
         }
-        return participacionRepository.findByJugador_Id(usuarioId).stream()
+        List<PartidaDTO> partidas = participacionRepository.findByJugador_Id(usuarioId).stream()
                 .map(ParticipacionEntity::getPartida)
                 .filter(partida -> partida != null)
                 .map(Mapper::toDTO)
-                .map(this::attachFichasPorJugador)
                 .toList();
+        return attachFichasPorJugador(partidas);
+    }
+
+    public List<PartidaDTO> getOpenPublicGames(Boolean modoArcade) {
+        boolean arcade = Boolean.TRUE.equals(modoArcade);
+        List<PartidaDTO> partidas = partidaRepository
+                .findByModoArcadeAndPrivadaAndEstadoAndCorriendoFalse(arcade, false, ESTADO_WAITING)
+                .stream()
+                .map(this::toMatchmakingDTO)
+                .toList();
+        return attachFichasPorJugador(partidas);
     }
 
     @Transactional
@@ -2009,6 +2019,21 @@ public class PartidaService {
         return attachFichasPorJugador(Mapper.toDTO(partida));
     }
 
+    private PartidaDTO toMatchmakingDTO(PartidaEntity partida) {
+        if (partida == null) {
+            return null;
+        }
+        return PartidaDTO.builder()
+                .idPartida(partida.getIdPartida())
+                .turno(partida.getTurno())
+                .fecha(partida.getFecha())
+                .modoArcade(partida.isModoArcade())
+                .estado(partida.getEstado())
+                .privada(partida.isPrivada())
+                .corriendo(partida.isCorriendo())
+                .build();
+    }
+
     private PartidaDTO attachFichasPorJugador(PartidaDTO dto) {
         if (dto == null || dto.getIdPartida() == null) {
             return dto;
@@ -2021,6 +2046,36 @@ public class PartidaService {
         }
         dto.setFichasPorJugador(fichas);
         return dto;
+    }
+
+    private List<PartidaDTO> attachFichasPorJugador(List<PartidaDTO> dtos) {
+        if (dtos == null || dtos.isEmpty()) {
+            return List.of();
+        }
+        List<Integer> partidaIds = dtos.stream()
+                .map(PartidaDTO::getIdPartida)
+                .filter(id -> id != null)
+                .toList();
+        if (partidaIds.isEmpty()) {
+            return dtos;
+        }
+        Map<Integer, Map<Integer, Integer>> fichasPorPartida = new HashMap<>();
+        for (ParticipacionEntity p : participacionRepository.findByPartida_IdPartidaIn(partidaIds)) {
+            if (p.getPartida() == null || p.getPartida().getIdPartida() == null
+                    || p.getJugador() == null || p.getJugador().getId() == null) {
+                continue;
+            }
+            fichasPorPartida
+                    .computeIfAbsent(p.getPartida().getIdPartida(), ignored -> new LinkedHashMap<>())
+                    .put(p.getJugador().getId(), p.getFichasActuales());
+        }
+        for (PartidaDTO dto : dtos) {
+            if (dto != null && dto.getIdPartida() != null) {
+                Map<Integer, Integer> fichas = fichasPorPartida.get(dto.getIdPartida());
+                dto.setFichasPorJugador(fichas == null ? new LinkedHashMap<>() : fichas);
+            }
+        }
+        return dtos;
     }
 
     private List<List<String>> normalizeGroups(List<List<String>> groups) {
