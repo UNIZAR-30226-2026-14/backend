@@ -412,28 +412,8 @@ public class PartidaService {
                 if (objetivoInventario.isEmpty()) {
                     mensaje = "WHITE_GLOVE no encontro objetos que robar";
                 } else {
-                    habilidadesObjetivoVisibles = new ArrayList<>(objetivoInventario);
-                    if (codigoObjetoObjetivoRaw == null || codigoObjetoObjetivoRaw.isBlank()) {
-                        actorInventario.add(codigoObjeto);
-                        return buildUsarObjetoResponse(
-                                partida,
-                                actor,
-                                codigoObjeto,
-                                idJugadorObjetivo,
-                                false,
-                                false,
-                                "Elige uno de los objetos del objetivo para robarselo",
-                                List.of(),
-                                habilidadesObjetivoVisibles,
-                                objetivoInventario,
-                                objetivoEfectos
-                        );
-                    }
-                    String codigoObjetoObjetivo = normalizeMarketObjectCode(codigoObjetoObjetivoRaw);
-                    if (!objetivoInventario.remove(codigoObjetoObjetivo)) {
-                        throw new IllegalArgumentException("El jugador objetivo no tiene el objeto " + codigoObjetoObjetivo);
-                    }
-                    String robbed = codigoObjetoObjetivo;
+                    int randomIndex = ThreadLocalRandom.current().nextInt(objetivoInventario.size());
+                    String robbed = objetivoInventario.remove(randomIndex);
                     actorInventario.add(robbed);
                     mensaje = "WHITE_GLOVE robo el objeto " + robbed;
                 }
