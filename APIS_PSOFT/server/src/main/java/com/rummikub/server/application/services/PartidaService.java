@@ -416,6 +416,7 @@ public class PartidaService {
                     int randomIndex = ThreadLocalRandom.current().nextInt(objetivoInventario.size());
                     String robbed = objetivoInventario.remove(randomIndex);
                     actorInventario.add(robbed);
+                    habilidadesObjetivoVisibles = List.of(robbed);
                     mensaje = "WHITE_GLOVE robo el objeto " + robbed;
                 }
             }
