@@ -16,11 +16,15 @@ import com.rummikub.server.infraestructure.jpa.repository.JugadorRepository;
 import com.rummikub.server.infraestructure.jpa.repository.ParticipacionRepository;
 import com.rummikub.server.infraestructure.jpa.repository.PartidaRepository;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,6 +40,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -93,18 +99,23 @@ public class PartidaService {
     private final ParticipacionRepository participacionRepository;
     private final JugadorRepository jugadorRepository;
     private final BotIntegrationService botIntegrationService;
+    private final TransactionTemplate transactionTemplate;
     private final Map<Integer, TurnRuntime> turnRuntimeByPartida = new ConcurrentHashMap<>();
-    private final Object turnMutex = new Object();
+    private final Map<Integer, Object> turnMutexByPartida = new ConcurrentHashMap<>();
+    private final Set<Integer> botTurnJobsInProgress = ConcurrentHashMap.newKeySet();
+    private final ExecutorService botTurnExecutor = Executors.newCachedThreadPool();
 
     public PartidaService(
             PartidaRepository partidaRepository,
             ParticipacionRepository participacionRepository,
             JugadorRepository jugadorRepository,
-            BotIntegrationService botIntegrationService) {
+            BotIntegrationService botIntegrationService,
+            TransactionTemplate transactionTemplate) {
         this.partidaRepository = partidaRepository;
         this.participacionRepository = participacionRepository;
         this.jugadorRepository = jugadorRepository;
         this.botIntegrationService = botIntegrationService;
+        this.transactionTemplate = transactionTemplate;
     }
 
     @PostConstruct
@@ -117,6 +128,11 @@ public class PartidaService {
                 turnRuntimeByPartida.put(partida.getIdPartida(), runtime);
             }
         }
+    }
+
+    @PreDestroy
+    public void shutdownBotTurnExecutor() {
+        botTurnExecutor.shutdownNow();
     }
 
     public List<PartidaDTO> getAll() {
@@ -286,7 +302,7 @@ public class PartidaService {
             }
             turnRuntimeByPartida.remove(partida.getIdPartida());
         } else if (willRun) {
-            synchronized (turnMutex) {
+            synchronized (getTurnMutex(idPartida)) {
                 TurnRuntime runtime = createRuntimeFromDatabase(partida, LocalDateTime.now());
                 if (runtime != null) {
                     turnRuntimeByPartida.put(partida.getIdPartida(), runtime);
@@ -299,7 +315,7 @@ public class PartidaService {
 
     @Transactional
     public PartidaDTO iniciar(Integer idPartida) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             PartidaEntity partida = partidaRepository.findById(idPartida)
                     .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
 
@@ -308,8 +324,8 @@ public class PartidaService {
             if (ESTADO_FINISHED.equals(partida.getEstado())) {
                 throw new IllegalStateException("La partida ya finalizo");
             }
-            if (partida.isCorriendo()) {
-                throw new IllegalStateException("La partida ya esta en curso");
+            if (partida.isCorriendo() || ESTADO_RUNNING.equals(partida.getEstado())) {
+                return toPartidaDTO(partida);
             }
 
             partida.setCorriendo(true);
@@ -329,7 +345,7 @@ public class PartidaService {
 
     @Transactional
     public PartidaDTO pausarPartida(Integer idPartida, Integer idJugadorSolicitante) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             PartidaEntity partida = mustGetRunningPartida(idPartida);
             mustGetParticipacion(idPartida, idJugadorSolicitante);
 
@@ -344,7 +360,7 @@ public class PartidaService {
 
     @Transactional
     public PartidaDTO reanudarPartida(Integer idPartida, Integer idJugadorSolicitante) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             PartidaEntity partida = partidaRepository.findById(idPartida)
                     .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
             ensureDefaultState(partida);
@@ -372,8 +388,8 @@ public class PartidaService {
             turnRuntimeByPartida.put(partida.getIdPartida(), runtime);
 
             partida = partidaRepository.save(partida);
-            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, now);
-            return botUpdated == null ? toPartidaDTO(partida) : botUpdated;
+            triggerAutomatedBotTurnsAsync(idPartida);
+            return toPartidaDTO(partida);
         }
     }
 
@@ -384,20 +400,20 @@ public class PartidaService {
 
     @Transactional
     public PartidaDTO pasarTurno(Integer idPartida, Integer idJugador) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             PartidaEntity partida = mustGetRunningPartida(idPartida);
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
             validatePlayerTurn(partida, participacion);
             resetPlayerInactivity(participacion);
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
-            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
-            return botUpdated == null ? attachFichasPorJugador(updated) : botUpdated;
+            triggerAutomatedBotTurnsAsync(idPartida);
+            return attachFichasPorJugador(updated);
         }
     }
 
     @Transactional
     public PartidaDTO robarFicha(Integer idPartida, Integer idJugador) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             PartidaEntity partida = mustGetRunningPartida(idPartida);
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
             validatePlayerTurn(partida, participacion);
@@ -417,9 +433,8 @@ public class PartidaService {
             participacionRepository.save(participacion);
 
             partida.setBolsa(serializeTileList(bag));
-            PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
-            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
-            PartidaDTO result = botUpdated == null ? updated : botUpdated;
+            PartidaDTO result = advanceTurn(partida, LocalDateTime.now());
+            triggerAutomatedBotTurnsAsync(idPartida);
             result.setFichaRobada(drawnTile);
             result.setFichasRobadas(List.of(drawnTile));
             return result;
@@ -428,7 +443,7 @@ public class PartidaService {
 
     @Transactional
     public PartidaDTO robarSinPasarTurno(Integer idPartida, Integer idJugador, Integer cantidadRobar) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             PartidaEntity partida = mustGetRunningPartida(idPartida);
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
             validatePlayerTurn(partida, participacion);
@@ -462,7 +477,7 @@ public class PartidaService {
 
     @Transactional
     public PartidaDTO jugarGrupos(Integer idPartida, Integer idJugador, List<List<String>> grupos) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             if (grupos == null || grupos.isEmpty()) {
                 throw new IllegalArgumentException("Debes enviar al menos un grupo de fichas");
             }
@@ -506,8 +521,8 @@ public class PartidaService {
             }
 
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
-            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
-            return botUpdated == null ? updated : botUpdated;
+            triggerAutomatedBotTurnsAsync(idPartida);
+            return updated;
         }
     }
 
@@ -520,7 +535,7 @@ public class PartidaService {
             Integer extendIndex,
             List<String> extensionTiles,
             List<List<String>> newBoard) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             if (moveType == null || moveType.isBlank()) {
                 throw new IllegalArgumentException("moveType es obligatorio");
             }
@@ -546,7 +561,7 @@ public class PartidaService {
 
     @Transactional
     public PartidaDTO salirPartida(Integer idPartida, Integer idJugador) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             PartidaEntity partida = partidaRepository.findById(idPartida)
                     .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
             ensureDefaultState(partida);
@@ -564,14 +579,14 @@ public class PartidaService {
                 turnRuntimeByPartida.put(partida.getIdPartida(), runtime);
             }
 
-            PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, now);
-            return botUpdated == null ? toPartidaDTO(partida) : botUpdated;
+            triggerAutomatedBotTurnsAsync(idPartida);
+            return toPartidaDTO(partida);
         }
     }
 
     @Transactional
     public PartidaDTO finalizarPartida(Integer idPartida, Integer idJugadorSolicitante) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             PartidaEntity partida = partidaRepository.findById(idPartida)
                     .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
             ensureDefaultState(partida);
@@ -739,6 +754,47 @@ public class PartidaService {
         return lastState;
     }
 
+    private void triggerAutomatedBotTurnsAsync(Integer idPartida) {
+        if (idPartida == null) {
+            return;
+        }
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    submitAutomatedBotTurns(idPartida);
+                }
+            });
+            return;
+        }
+        submitAutomatedBotTurns(idPartida);
+    }
+
+    private void submitAutomatedBotTurns(Integer idPartida) {
+        if (!botTurnJobsInProgress.add(idPartida)) {
+            return;
+        }
+        botTurnExecutor.submit(() -> {
+            try {
+                transactionTemplate.executeWithoutResult(status -> {
+                    synchronized (getTurnMutex(idPartida)) {
+                        PartidaEntity partida = partidaRepository.findById(idPartida).orElse(null);
+                        if (partida == null) {
+                            return;
+                        }
+                        ensureDefaultState(partida);
+                        runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
+                    }
+                });
+            } catch (Exception ex) {
+                LOGGER.warn("No se pudieron procesar turnos automaticos de bot para partida {}: {}",
+                        idPartida, ex.getMessage());
+            } finally {
+                botTurnJobsInProgress.remove(idPartida);
+            }
+        });
+    }
+
     private ParticipacionEntity getParticipacionByTurn(Integer idPartida, int turno) {
         int slot = normalizeTurn(turno);
         List<ParticipacionEntity> participaciones = getOrderedParticipaciones(idPartida);
@@ -869,8 +925,8 @@ public class PartidaService {
         }
 
         PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
-        PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
-        return botUpdated == null ? updated : botUpdated;
+        triggerAutomatedBotTurnsAsync(partida.getIdPartida());
+        return updated;
     }
 
     private PartidaDTO jugarReplaceBoardHumano(
@@ -917,8 +973,8 @@ public class PartidaService {
         }
 
         PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
-        PartidaDTO botUpdated = runAutomatedBotTurnsIfNeeded(partida, LocalDateTime.now());
-        return botUpdated == null ? updated : botUpdated;
+        triggerAutomatedBotTurnsAsync(partida.getIdPartida());
+        return updated;
     }
 
     private void applyBotPlayMelds(
@@ -1441,7 +1497,7 @@ public class PartidaService {
     }
 
     private void advanceTurnOnTimeout(Integer idPartida, LocalDateTime now) {
-        synchronized (turnMutex) {
+        synchronized (getTurnMutex(idPartida)) {
             TurnRuntime runtime = turnRuntimeByPartida.get(idPartida);
             if (runtime == null || now.isBefore(runtime.deadline)) {
                 return;
@@ -2152,6 +2208,14 @@ public class PartidaService {
 
     public void clearTurnRuntimeCache() {
         turnRuntimeByPartida.clear();
+        turnMutexByPartida.clear();
+    }
+
+    private Object getTurnMutex(Integer idPartida) {
+        if (idPartida == null) {
+            throw new IllegalArgumentException("idPartida es obligatorio");
+        }
+        return turnMutexByPartida.computeIfAbsent(idPartida, ignored -> new Object());
     }
 
     private static final class TurnRuntime {
