@@ -21,11 +21,17 @@ public class ParticipacionService {
     private final ParticipacionRepository participacionRepository;
     private final JugadorRepository jugadorRepository;
     private final PartidaRepository partidaRepository;
+    private final PartidaService partidaService;
 
-    public ParticipacionService(ParticipacionRepository participacionRepository, JugadorRepository jugadorRepository, PartidaRepository partidaRepository) {
+    public ParticipacionService(
+            ParticipacionRepository participacionRepository,
+            JugadorRepository jugadorRepository,
+            PartidaRepository partidaRepository,
+            PartidaService partidaService) {
         this.participacionRepository = participacionRepository;
         this.jugadorRepository = jugadorRepository;
         this.partidaRepository = partidaRepository;
+        this.partidaService = partidaService;
     }
 
     public List<ParticipacionDTO> getAll() {
@@ -58,6 +64,8 @@ public class ParticipacionService {
             if (!existing.isConectado()) {
                 existing.setConectado(true);
                 existing = participacionRepository.save(existing);
+                partidaService.autoStartIfPublicFull(dto.getIdPartida());
+                existing = participacionRepository.findById(id).orElse(existing);
             }
             return Mapper.toDTO(existing);
         }
@@ -111,6 +119,9 @@ public class ParticipacionService {
             entity.setTurnosInactivo(dto.getTurnosInactivo());
             entity.setConectado(true);
         }
-        return Mapper.toDTO(participacionRepository.save(entity));
+        entity = participacionRepository.save(entity);
+        partidaService.autoStartIfPublicFull(dto.getIdPartida());
+        entity = participacionRepository.findById(id).orElse(entity);
+        return Mapper.toDTO(entity);
     }
 }

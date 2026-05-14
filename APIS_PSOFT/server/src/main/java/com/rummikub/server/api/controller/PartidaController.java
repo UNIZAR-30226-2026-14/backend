@@ -3,6 +3,8 @@ package com.rummikub.server.api.controller;
 import com.rummikub.server.api.dto.PartidaDTO;
 import com.rummikub.server.api.dto.partida.ComprarMercadoRequest;
 import com.rummikub.server.api.dto.partida.CreatePartidaRequest;
+import com.rummikub.server.api.dto.partida.MatchmakingRequest;
+import com.rummikub.server.api.dto.partida.MatchmakingResponse;
 import com.rummikub.server.api.dto.partida.MercadoParticipacionDTO;
 import com.rummikub.server.api.dto.partida.PlayAdvancedTurnRequest;
 import com.rummikub.server.api.dto.partida.PlayTurnRequest;
@@ -73,6 +75,15 @@ public class PartidaController {
                 .corriendo(request.isCorriendo())
                 .build();
         return partidaService.create(dto);
+    }
+
+    @PostMapping("/matchmaking")
+    public MatchmakingResponse matchmaking(
+            @RequestBody(required = false) MatchmakingRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        boolean modoArcade = request != null && Boolean.TRUE.equals(request.getModoArcade());
+        return partidaService.matchmaking(idJugador, modoArcade);
     }
 
     @PutMapping("/{id}")

@@ -66,7 +66,7 @@ Luego pulsa `Test Connection` y `Finish`.
 2. Hacer login (`POST /api/auth/login`) y guardar `token`.
 3. Crear partida (`POST /api/partidas`) con `corriendo=false` (No hace falta poner id).
 4. Crear participaciones (`POST /api/participaciones`).
-5. Iniciar partida (`POST /api/partidas/{id}/iniciar`).
+5. Iniciar partida (`POST /api/partidas/{id}/iniciar`), o dejar que se autoarranque al llenarse una publica.
 6. Loop de turno con endpoints de juego (`jugar`, `robar`, `pasar`).
 7. Si faltan jugadores al iniciar, backend completa con bots hasta 4.
 8. Si alguien sale durante la partida (`POST /api/partidas/{id}/salir`), backend lo reemplaza por bot.
@@ -104,6 +104,7 @@ Las peticiones JSON no cambian; solo cambia el esquema (`https`) y el puerto (`8
 ### Partidas
 
 - `GET /api/partidas`
+- `POST /api/partidas/matchmaking`
 - `GET /api/partidas/{id}`
 - `POST /api/partidas`
 - `PUT /api/partidas/{id}`
@@ -125,6 +126,30 @@ Las peticiones JSON no cambian; solo cambia el esquema (`https`) y el puerto (`8
 - `GET /api/participaciones/{idJugador}/{idPartida}` (nuevo, directo)
 - `POST /api/participaciones`
 - `PUT /api/participaciones/{idJugador}/{idPartida}`
+
+### Matchmaking publico
+
+- `POST /api/partidas/matchmaking`
+  - usa el jugador autenticado del token
+  - busca una partida publica `WAITING` compatible por `modoArcade`
+  - si existe una con hueco, mete al jugador ahi
+  - si no existe, crea una nueva publica
+  - devuelve:
+    - `creadaNuevaPartida`
+    - `partida`
+    - `participacion`
+
+Body opcional:
+
+```json
+{
+  "modoArcade": true
+}
+```
+
+Nota:
+
+- si no se envia body o `modoArcade=false`, el matchmaking buscara/creara partida publica clasica.
 
 ### Otros
 
@@ -185,6 +210,18 @@ Al iniciar (`/iniciar`):
 - Se reparten 14 fichas por jugador (`manoActual`).
 - Se asigna `ordenTurno`.
 - Se deja `estado=RUNNING`.
+
+Autoarranque:
+
+- Una partida publica `WAITING` se autoarranca cuando alcanza `4` participaciones.
+- Esto aplica tanto si los jugadores entran por:
+  - `POST /api/partidas/matchmaking`
+  - `POST /api/participaciones`
+- Cuando ocurre, backend inicializa:
+  - bolsa
+  - manos
+  - orden de turno
+  - `estado=RUNNING`
 
 Fin de partida:
 

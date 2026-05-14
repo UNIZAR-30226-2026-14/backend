@@ -2,9 +2,11 @@ package com.rummikub.server.application.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rummikub.server.api.dto.PartidaDTO;
+import com.rummikub.server.api.dto.ParticipacionDTO;
 import com.rummikub.server.api.dto.bot.BotMoveDTO;
 import com.rummikub.server.api.dto.bot.BotMoveRequest;
 import com.rummikub.server.api.dto.bot.BotMoveResponse;
+import com.rummikub.server.api.dto.partida.MatchmakingResponse;
 import com.rummikub.server.api.dto.partida.MercadoItemDTO;
 import com.rummikub.server.api.dto.partida.MercadoParticipacionDTO;
 import com.rummikub.server.api.dto.partida.UsarObjetoMercadoResponse;
@@ -18,6 +20,7 @@ import com.rummikub.server.infraestructure.jpa.repository.ParticipacionRepositor
 import com.rummikub.server.infraestructure.jpa.repository.PartidaRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -122,6 +125,7 @@ public class PartidaService {
     private final Map<Integer, Object> turnMutexByPartida = new ConcurrentHashMap<>();
     private final Set<Integer> botTurnJobsInProgress = ConcurrentHashMap.newKeySet();
     private final ExecutorService botTurnExecutor = Executors.newCachedThreadPool();
+    private final Object matchmakingMutex = new Object();
 
     public PartidaService(
             PartidaRepository partidaRepository,
@@ -179,6 +183,59 @@ public class PartidaService {
                 .stream()
                 .map(this::toMatchmakingDTO)
                 .toList();
+    }
+
+    @Transactional
+    public MatchmakingResponse matchmaking(Integer idJugador, boolean modoArcade) {
+        if (idJugador == null) {
+            throw new IllegalArgumentException("idJugador es obligatorio");
+        }
+
+        synchronized (matchmakingMutex) {
+            ParticipacionEntity existingWaiting = findExistingWaitingPublicParticipation(idJugador, modoArcade);
+            if (existingWaiting != null) {
+                return MatchmakingResponse.builder()
+                        .creadaNuevaPartida(false)
+                        .partida(toPartidaDTO(existingWaiting.getPartida()))
+                        .participacion(Mapper.toDTO(existingWaiting))
+                        .build();
+            }
+
+            PartidaEntity target = findJoinablePublicGame(modoArcade);
+            boolean created = false;
+            if (target == null) {
+                target = createPublicWaitingGame(modoArcade);
+                created = true;
+            }
+
+            ParticipacionEntity participacion = createOrReuseParticipation(idJugador, target);
+            PartidaDTO partidaActualizada = autoStartIfPublicFull(target.getIdPartida());
+            return MatchmakingResponse.builder()
+                    .creadaNuevaPartida(created)
+                    .partida(partidaActualizada)
+                    .participacion(Mapper.toDTO(participacion))
+                    .build();
+        }
+    }
+
+    @Transactional
+    public PartidaDTO autoStartIfPublicFull(Integer idPartida) {
+        synchronized (getTurnMutex(idPartida)) {
+            PartidaEntity partida = partidaRepository.findById(idPartida)
+                    .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
+            ensureDefaultState(partida);
+
+            if (partida.isPrivada() || partida.isCorriendo() || !ESTADO_WAITING.equalsIgnoreCase(safe(partida.getEstado()))) {
+                return toPartidaDTO(partida);
+            }
+
+            int playerCount = participacionRepository.findByPartida_IdPartida(idPartida).size();
+            if (playerCount < MAX_TURN_SLOTS) {
+                return toPartidaDTO(partida);
+            }
+
+            return iniciar(idPartida);
+        }
     }
 
     @Transactional
@@ -1971,6 +2028,79 @@ public class PartidaService {
 
     private PartidaDTO toPartidaDTO(PartidaEntity partida) {
         return attachFichasPorJugador(Mapper.toDTO(partida));
+    }
+
+    private ParticipacionEntity findExistingWaitingPublicParticipation(Integer idJugador, boolean modoArcade) {
+        return participacionRepository.findByJugador_Id(idJugador).stream()
+                .filter(p -> p.getPartida() != null)
+                .filter(p -> !p.getPartida().isPrivada())
+                .filter(p -> !p.getPartida().isCorriendo())
+                .filter(p -> ESTADO_WAITING.equalsIgnoreCase(safe(p.getPartida().getEstado())))
+                .filter(p -> p.getPartida().isModoArcade() == modoArcade)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private PartidaEntity findJoinablePublicGame(boolean modoArcade) {
+        List<PartidaEntity> candidates = partidaRepository.findMatchmakingCandidates(
+                modoArcade,
+                ESTADO_WAITING,
+                PageRequest.of(0, 20));
+        for (PartidaEntity candidata : candidates) {
+            if (candidata == null || candidata.getIdPartida() == null) {
+                continue;
+            }
+            int playerCount = participacionRepository.findByPartida_IdPartida(candidata.getIdPartida()).size();
+            if (playerCount < MAX_TURN_SLOTS) {
+                return candidata;
+            }
+        }
+        return null;
+    }
+
+    private PartidaEntity createPublicWaitingGame(boolean modoArcade) {
+        PartidaEntity partida = new PartidaEntity();
+        partida.setTurno(0);
+        partida.setFecha(LocalDate.now());
+        partida.setMercado("");
+        partida.setBolsa("");
+        partida.setConjuntoMesa("");
+        partida.setEventoActual("");
+        partida.setModoArcade(modoArcade);
+        partida.setTurnoInicio(null);
+        partida.setEstado(ESTADO_WAITING);
+        partida.setGanadorId(null);
+        partida.setPuntuacionFinal("");
+        partida.setPrivada(false);
+        partida.setCorriendo(false);
+        return partidaRepository.save(partida);
+    }
+
+    private ParticipacionEntity createOrReuseParticipation(Integer idJugador, PartidaEntity partida) {
+        ParticipacionId id = new ParticipacionId(idJugador, partida.getIdPartida());
+        ParticipacionEntity existing = participacionRepository.findById(id).orElse(null);
+        if (existing != null) {
+            if (!existing.isConectado()) {
+                existing.setConectado(true);
+                existing = participacionRepository.save(existing);
+            }
+            return existing;
+        }
+
+        JugadorEntity jugador = jugadorRepository.findById(idJugador)
+                .orElseThrow(() -> new NoSuchElementException("Jugador no encontrado: " + idJugador));
+
+        ParticipacionEntity entity = new ParticipacionEntity();
+        entity.setId(id);
+        entity.setJugador(jugador);
+        entity.setPartida(partida);
+        entity.setFichasActuales(0);
+        entity.setHabilidadesActuales("");
+        entity.setManoActual("");
+        entity.setOrdenTurno(null);
+        entity.setTurnosInactivo(0);
+        entity.setConectado(true);
+        return participacionRepository.save(entity);
     }
 
     private PartidaDTO toMatchmakingDTO(PartidaRepository.MatchmakingPartidaView partida) {
