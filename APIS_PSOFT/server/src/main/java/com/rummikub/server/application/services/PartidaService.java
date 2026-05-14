@@ -2199,7 +2199,11 @@ public class PartidaService {
 
             int nextTurn = nextOccupiedTurn(baseTurn, runtime.occupiedSlots);
             ParticipacionEntity timedOut = getParticipacionByTurn(idPartida, baseTurn);
-            maybeReplaceInactivePlayerWithBot(partida, timedOut);
+            boolean replaced = maybeReplaceInactivePlayerWithBot(partida, timedOut);
+            if (!replaced && !isBotPlayer(timedOut)) {
+                // Primer timeout: forzar robo de ficha como si el jugador hubiera pasado
+                drawOneTileIfPossible(partida, timedOut);
+            }
             runtime.currentTurn = nextTurn;
             runtime.deadline = now.plusSeconds(resolveTurnDurationSeconds(idPartida, nextTurn));
 
@@ -2264,17 +2268,23 @@ public class PartidaService {
         return "prohibido_" + ARCADE_PROHIBITED_COLORS.get(index - ARCADE_BASE_EVENTS.size());
     }
 
-    private void maybeReplaceInactivePlayerWithBot(PartidaEntity partida, ParticipacionEntity participacion) {
+    /**
+     * Incrementa el contador de inactividad del jugador.
+     * Si llega al limite (2), lo sustituye por un bot.
+     * @return true si el jugador fue reemplazado por bot, false si solo se incremento el contador.
+     */
+    private boolean maybeReplaceInactivePlayerWithBot(PartidaEntity partida, ParticipacionEntity participacion) {
         if (participacion == null || isBotPlayer(participacion)) {
-            return;
+            return false;
         }
         int nextValue = Math.min(participacion.getTurnosInactivo() + 1, INACTIVITY_LIMIT_TURNS);
         participacion.setTurnosInactivo(nextValue);
         if (nextValue >= INACTIVITY_LIMIT_TURNS) {
             replaceParticipationWithBot(partida, participacion);
-            return;
+            return true;
         }
         participacionRepository.save(participacion);
+        return false;
     }
 
     private void resetPlayerInactivity(ParticipacionEntity participacion) {
