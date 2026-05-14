@@ -275,9 +275,6 @@ public class PartidaService {
 
         ParticipacionEntity actor = mustGetParticipacion(idPartida, idJugador);
         String codigoObjeto = normalizeMarketObjectCode(codigoObjetoRaw);
-        if ("GUARDIAN_ANGEL".equals(codigoObjeto)) {
-            throw new IllegalStateException("GUARDIAN_ANGEL es pasivo y no puede usarse activamente");
-        }
 
         List<String> actorInventario = parsePurchasedObjectCodes(actor.getHabilidadesActuales());
         List<String> actorEfectos = parseActiveEffectCodes(actor.getHabilidadesActuales());
@@ -298,24 +295,6 @@ public class PartidaService {
             objetivo = mustGetParticipacion(idPartida, idJugadorObjetivo);
             objetivoInventario = new ArrayList<>(parsePurchasedObjectCodes(objetivo.getHabilidadesActuales()));
             objetivoEfectos = new ArrayList<>(parseActiveEffectCodes(objetivo.getHabilidadesActuales()));
-
-            if (tryBlockWithGuardianAngel(objetivo, objetivoInventario, objetivoEfectos)) {
-                actor.setHabilidadesActuales(serializeHabilidadesState(actorInventario, actorEfectos));
-                participacionRepository.save(actor);
-                return buildUsarObjetoResponse(
-                        partida,
-                        actor,
-                        codigoObjeto,
-                        idJugadorObjetivo,
-                        true,
-                        true,
-                        "El objeto fue bloqueado por GUARDIAN_ANGEL",
-                        List.of(),
-                        null,
-                        objetivoInventario,
-                        objetivoEfectos
-                );
-            }
         }
 
         List<String> fichasObjetivoVisibles = List.of();
@@ -323,6 +302,10 @@ public class PartidaService {
         String mensaje;
 
         switch (codigoObjeto) {
+            case "GUARDIAN_ANGEL" -> {
+                addActiveEffect(actorEfectos, "GUARDIAN_ANGEL");
+                mensaje = "GUARDIAN_ANGEL activado sobre tu jugador";
+            }
             case "CRYSTAL_BALL" -> {
                 fichasObjetivoVisibles = parseTileList(objetivo.getManoActual());
                 habilidadesObjetivoVisibles = new ArrayList<>(objetivoInventario);
@@ -333,8 +316,8 @@ public class PartidaService {
                 mensaje = "MIDAS_TOUCH aplicada sobre tu mano";
             }
             case "PLUS_FOUR" -> {
-                drawTilesForTarget(partida, objetivo, 4);
-                mensaje = "PLUS_FOUR aplicada al jugador objetivo";
+                addActiveEffect(objetivoEfectos, "PLUS_FOUR");
+                mensaje = "PLUS_FOUR marcada sobre el jugador objetivo";
             }
             case "SWAP_ON_FAIL" -> {
                 List<String> preview = getSwapOnFailPreview(objetivo);
@@ -390,15 +373,15 @@ public class PartidaService {
             }
             case "SMOKE_BOMB" -> {
                 addActiveEffect(objetivoEfectos, "SMOKE_BOMB");
-                mensaje = "SMOKE_BOMB aplicada al jugador objetivo";
+                mensaje = "SMOKE_BOMB marcada sobre el jugador objetivo";
             }
             case "CHILI_PEPPER" -> {
                 addActiveEffect(objetivoEfectos, "CHILI_PEPPER");
-                mensaje = "CHILI_PEPPER aplicada al jugador objetivo";
+                mensaje = "CHILI_PEPPER marcada sobre el jugador objetivo";
             }
             case "GLASS_CEILING" -> {
                 addActiveEffect(objetivoEfectos, "GLASS_CEILING");
-                mensaje = "GLASS_CEILING aplicada al jugador objetivo";
+                mensaje = "GLASS_CEILING marcada sobre el jugador objetivo";
             }
             default -> throw new IllegalArgumentException("Objeto no soportado para uso: " + codigoObjeto);
         }
@@ -1082,23 +1065,6 @@ public class PartidaService {
         };
     }
 
-    private boolean tryBlockWithGuardianAngel(
-            ParticipacionEntity objetivo,
-            List<String> objetivoInventario,
-            List<String> objetivoEfectos) {
-        if (objetivo == null || objetivoInventario == null) {
-            return false;
-        }
-        int guardianIndex = objetivoInventario.indexOf("GUARDIAN_ANGEL");
-        if (guardianIndex < 0) {
-            return false;
-        }
-        objetivoInventario.remove(guardianIndex);
-        objetivo.setHabilidadesActuales(serializeHabilidadesState(objetivoInventario, objetivoEfectos));
-        participacionRepository.save(objetivo);
-        return true;
-    }
-
     private void drawTilesForTarget(PartidaEntity partida, ParticipacionEntity objetivo, int cantidad) {
         List<String> bag = parseTileList(partida.getBolsa());
         List<String> hand = parseTileList(objetivo.getManoActual());
@@ -1241,22 +1207,11 @@ public class PartidaService {
     }
 
     private int resolveTurnDurationSeconds(Integer idPartida, int turnSlot) {
-        ParticipacionEntity participacion = getParticipacionByTurn(idPartida, turnSlot);
-        if (participacion != null && consumeActiveEffect(participacion, "CHILI_PEPPER")) {
-            return TURN_TIMEOUT_SECONDS / 2;
-        }
         return TURN_TIMEOUT_SECONDS;
     }
 
     private void enforceGlassCeilingIfNeeded(ParticipacionEntity participacion, List<String> playedTiles) {
-        if (participacion == null || !hasActiveEffect(participacion, "GLASS_CEILING")) {
-            return;
-        }
-        int points = calculateHandPoints(playedTiles == null ? List.of() : playedTiles);
-        if (points < 30) {
-            throw new IllegalStateException("La siguiente jugada de este jugador debe sumar 30 puntos o mas");
-        }
-        consumeActiveEffect(participacion, "GLASS_CEILING");
+        // GLASS_CEILING se expone al frontend como efecto activo; su gestion funcional ya no se fuerza en backend.
     }
 
     private PartidaDTO jugarExtendHumano(

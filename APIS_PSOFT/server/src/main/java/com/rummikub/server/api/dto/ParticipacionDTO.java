@@ -1,5 +1,7 @@
 package com.rummikub.server.api.dto;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,6 +20,8 @@ public class ParticipacionDTO {
     private Integer idPartida;
     private int fichasActuales;
     private String habilidadesActuales;
+    private List<String> habilidadesCompradas;
+    private List<String> efectosActivos;
     private String manoActual;
     private Integer ordenTurno;
     private int turnosInactivo;

@@ -12,7 +12,9 @@ import com.rummikub.server.infraestructure.jpa.entity.ParticipacionEntity;
 import com.rummikub.server.infraestructure.jpa.entity.PartidaEntity;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 public class Mapper {
 
@@ -84,6 +86,8 @@ public class Mapper {
                 .idPartida(participacion.getPartida().getIdPartida())
                 .fichasActuales(participacion.getFichasActuales())
                 .habilidadesActuales(participacion.getHabilidadesActuales())
+                .habilidadesCompradas(parsePurchasedCodes(participacion.getHabilidadesActuales()))
+                .efectosActivos(parseActiveEffects(participacion.getHabilidadesActuales()))
                 .manoActual(normalizeSerializedTiles(participacion.getManoActual()))
                 .ordenTurno(participacion.getOrdenTurno())
                 .turnosInactivo(participacion.getTurnosInactivo())
@@ -121,5 +125,34 @@ public class Mapper {
         } catch (Exception ex) {
             return Map.of("raw", rawValue);
         }
+    }
+
+    private static List<String> parsePurchasedCodes(String rawValue) {
+        List<String> result = new ArrayList<>();
+        if (rawValue == null || rawValue.isBlank()) {
+            return result;
+        }
+        for (String token : rawValue.split(",")) {
+            String normalized = token == null ? "" : token.trim();
+            if (normalized.isEmpty() || normalized.startsWith("FX:")) {
+                continue;
+            }
+            result.add(normalized);
+        }
+        return result;
+    }
+
+    private static List<String> parseActiveEffects(String rawValue) {
+        List<String> result = new ArrayList<>();
+        if (rawValue == null || rawValue.isBlank()) {
+            return result;
+        }
+        for (String token : rawValue.split(",")) {
+            String normalized = token == null ? "" : token.trim();
+            if (normalized.startsWith("FX:") && normalized.length() > 3) {
+                result.add(normalized.substring(3));
+            }
+        }
+        return result;
     }
 }

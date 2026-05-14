@@ -339,6 +339,9 @@ Resumen:
   - `Partida.mercado`
   - `Participacion.habilidadesActuales`
 - El mercado personal de cada jugador en arcade ahora muestra `3` objetos.
+- Precios actuales:
+  - `MIDAS_TOUCH` cuesta `3`
+  - el resto de objetos cuestan `6`
 - Los codigos de objeto actuales son:
   - `GUARDIAN_ANGEL`
   - `CRYSTAL_BALL`
@@ -395,15 +398,37 @@ Respuesta de uso:
 - `habilidadesObjetivoVisibles`
 - `efectosActivosObjetivo`
 
+Reparto de responsabilidades backend / frontend:
+
+- Objetos con logica funcional real en backend:
+  - `CRYSTAL_BALL`
+  - `MIDAS_TOUCH`
+  - `SWAP_ON_FAIL`
+  - `WHITE_GLOVE`
+
+- Objetos que backend registra y expone como efecto, para que frontend los interprete:
+  - `GUARDIAN_ANGEL`
+  - `PLUS_FOUR`
+  - `SMOKE_BOMB`
+  - `CHILI_PEPPER`
+  - `GLASS_CEILING`
+
 Notas de comportamiento:
 
-- `GUARDIAN_ANGEL` es pasivo y no se usa activamente.
 - `SWAP_ON_FAIL` y `WHITE_GLOVE` funcionan en dos pasos:
   - primero preview
   - luego confirmacion
-- `SMOKE_BOMB` deja el efecto activo en backend, pero el ocultado visual del tablero lo gestiona frontend.
-- `CHILI_PEPPER` reduce a la mitad el siguiente turno del objetivo.
-- `GLASS_CEILING` obliga a que la siguiente jugada del objetivo aporte `30` puntos o mas.
+- `CRYSTAL_BALL`
+  - devuelve las fichas y objetos del jugador objetivo.
+- `MIDAS_TOUCH`
+  - modifica directamente la mano del actor en backend.
+- `GUARDIAN_ANGEL`, `PLUS_FOUR`, `SMOKE_BOMB`, `CHILI_PEPPER` y `GLASS_CEILING`
+  - se consumen al usarse
+  - se guardan/exponen en `efectosActivos`
+  - frontend decide la reaccion visual o funcional a partir de esa informacion
+- En participaciones, frontend puede leer ya separados:
+  - `habilidadesCompradas`
+  - `efectosActivos`
 
 #### Ejemplo de flujo: objeto sobre uno mismo
 
@@ -425,6 +450,30 @@ POST /api/partidas/15/mercado/usar
 5. Front refresca la mano local y elimina el objeto del inventario visual.
 
 #### Ejemplo de flujo: objeto sobre otro jugador
+
+Caso: `PLUS_FOUR`
+
+Request:
+
+```json
+POST /api/partidas/15/mercado/usar
+{
+  "codigoObjeto": "PLUS_FOUR",
+  "idJugadorObjetivo": 22
+}
+```
+
+Resultado esperado:
+
+- backend consume el objeto
+- backend anade `PLUS_FOUR` a `efectosActivos` del objetivo
+- la respuesta incluye:
+  - `consumido=true`
+  - `idJugadorObjetivo=22`
+  - `efectosActivosObjetivo`
+- frontend usa esa informacion para avisar al jugador afectado y aplicar el comportamiento visual o funcional que corresponda
+
+#### Ejemplo de flujo: objeto con preview y confirmacion
 
 Caso: `WHITE_GLOVE`
 
