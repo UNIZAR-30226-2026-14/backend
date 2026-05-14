@@ -91,15 +91,15 @@ public class PartidaService {
             "GLASS_CEILING"
     );
     private static final Map<String, Integer> MARKET_OBJECT_VALUES = Map.of(
-            "GUARDIAN_ANGEL", 10,
-            "CRYSTAL_BALL", 20,
-            "MIDAS_TOUCH", 30,
-            "PLUS_FOUR", 40,
-            "SWAP_ON_FAIL", 50,
-            "WHITE_GLOVE", 60,
-            "SMOKE_BOMB", 70,
-            "CHILI_PEPPER", 80,
-            "GLASS_CEILING", 90
+            "GUARDIAN_ANGEL", 6,
+            "CRYSTAL_BALL", 6,
+            "MIDAS_TOUCH", 3,
+            "PLUS_FOUR", 6,
+            "SWAP_ON_FAIL", 6,
+            "WHITE_GLOVE", 6,
+            "SMOKE_BOMB", 6,
+            "CHILI_PEPPER", 6,
+            "GLASS_CEILING", 6
     );
     private static final String EFFECT_PREFIX = "FX:";
     private static final List<String> ARCADE_BASE_EVENTS = List.of(
