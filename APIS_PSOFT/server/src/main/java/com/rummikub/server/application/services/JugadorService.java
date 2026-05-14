@@ -138,11 +138,14 @@ public class JugadorService {
             throw new NoSuchElementException("Jugador no encontrado: " + idJugador);
         }
 
-        List<ListaDeAmigosEntity> relaciones = listaDeAmigosRepository.findByJugador1_IdOrJugador2_Id(idJugador, idJugador);
+        List<ListaDeAmigosEntity> relaciones = listaDeAmigosRepository.findAllByJugadorInRelation(idJugador);
         String estadoFiltro = estado == null ? null : estado.trim();
 
         Set<Integer> friendIds = new LinkedHashSet<>();
         for (ListaDeAmigosEntity relacion : relaciones) {
+            if (relacion.getJugador1() == null || relacion.getJugador2() == null) {
+                continue;
+            }
             if (estadoFiltro != null && !estadoFiltro.isBlank()) {
                 String estadoActual = relacion.getEstado() == null ? "" : relacion.getEstado().trim();
                 if (!estadoActual.equalsIgnoreCase(estadoFiltro)) {
