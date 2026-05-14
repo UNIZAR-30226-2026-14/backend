@@ -172,6 +172,16 @@ public class PartidaService {
         return attachFichasPorJugador(partidas);
     }
 
+    public List<PartidaDTO> getOpenPublicGames(Boolean modoArcade) {
+        boolean arcade = Boolean.TRUE.equals(modoArcade);
+        List<PartidaDTO> partidas = partidaRepository
+                .findByModoArcadeAndPrivadaAndEstadoAndCorriendoFalse(arcade, false, ESTADO_WAITING)
+                .stream()
+                .map(this::toMatchmakingDTO)
+                .toList();
+        return attachFichasPorJugador(partidas);
+    }
+
     @Transactional
     public PartidaDTO getById(Integer idPartida) {
         PartidaEntity partida = partidaRepository.findById(idPartida)
@@ -2007,6 +2017,21 @@ public class PartidaService {
 
     private PartidaDTO toPartidaDTO(PartidaEntity partida) {
         return attachFichasPorJugador(Mapper.toDTO(partida));
+    }
+
+    private PartidaDTO toMatchmakingDTO(PartidaEntity partida) {
+        if (partida == null) {
+            return null;
+        }
+        return PartidaDTO.builder()
+                .idPartida(partida.getIdPartida())
+                .turno(partida.getTurno())
+                .fecha(partida.getFecha())
+                .modoArcade(partida.isModoArcade())
+                .estado(partida.getEstado())
+                .privada(partida.isPrivada())
+                .corriendo(partida.isCorriendo())
+                .build();
     }
 
     private PartidaDTO attachFichasPorJugador(PartidaDTO dto) {
