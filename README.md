@@ -355,6 +355,7 @@ Endpoints nuevos o ampliados:
 - `GET /api/partidas/{id}/mercado`
   - devuelve el mercado personal del jugador autenticado.
   - incluye:
+    - `monedasJugador` 
     - `objetosMercado`
     - `habilidadesCompradas`
     - `efectosActivos`
