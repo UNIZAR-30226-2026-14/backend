@@ -7,6 +7,8 @@ import com.rummikub.server.api.dto.partida.MercadoParticipacionDTO;
 import com.rummikub.server.api.dto.partida.PlayAdvancedTurnRequest;
 import com.rummikub.server.api.dto.partida.PlayTurnRequest;
 import com.rummikub.server.api.dto.partida.TurnActionRequest;
+import com.rummikub.server.api.dto.partida.UsarObjetoMercadoRequest;
+import com.rummikub.server.api.dto.partida.UsarObjetoMercadoResponse;
 import com.rummikub.server.api.dto.partida.UpdatePartidaRequest;
 import com.rummikub.server.application.services.AuthService;
 import com.rummikub.server.application.services.PartidaService;
@@ -164,6 +166,23 @@ public class PartidaController {
             @RequestHeader("Authorization") String authorizationHeader) {
         Integer idJugador = authService.requireUserId(authorizationHeader);
         return partidaService.comprarObjetoMercado(id, idJugador, request.getCodigoObjeto());
+    }
+
+    @PostMapping("/{id}/mercado/usar")
+    public UsarObjetoMercadoResponse usarObjetoMercado(
+            @PathVariable Integer id,
+            @Valid @RequestBody UsarObjetoMercadoRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        Integer idJugador = authService.requireUserId(authorizationHeader);
+        return partidaService.usarObjetoMercado(
+                id,
+                idJugador,
+                request.getCodigoObjeto(),
+                request.getIdJugadorObjetivo(),
+                request.getCodigoObjetoObjetivo(),
+                request.getFichaPropia(),
+                request.getFichaObjetivo()
+        );
     }
 
     @PostMapping("/{id}/iniciar")

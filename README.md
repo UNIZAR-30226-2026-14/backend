@@ -329,3 +329,133 @@ Notas:
 
 - Las fichas arcoiris (`A`) se tratan como flexibles en validacion de combinaciones arcade.
 - Joker clasico sigue siendo `J*`.
+
+### 10.4 Integraciones nuevas de mercado y objetos arcade
+
+Resumen:
+
+- No se ha cambiado el esquema de base de datos para esta parte.
+- Se reutilizan:
+  - `Partida.mercado`
+  - `Participacion.habilidadesActuales`
+- El mercado personal de cada jugador en arcade ahora muestra `3` objetos.
+- Los codigos de objeto actuales son:
+  - `GUARDIAN_ANGEL`
+  - `CRYSTAL_BALL`
+  - `MIDAS_TOUCH`
+  - `PLUS_FOUR`
+  - `SWAP_ON_FAIL`
+  - `WHITE_GLOVE`
+  - `SMOKE_BOMB`
+  - `CHILI_PEPPER`
+  - `GLASS_CEILING`
+
+Endpoints nuevos o ampliados:
+
+- `GET /api/partidas/{id}/mercado`
+  - devuelve el mercado personal del jugador autenticado.
+  - incluye:
+    - `objetosMercado`
+    - `habilidadesCompradas`
+    - `efectosActivos`
+
+- `POST /api/partidas/{id}/mercado/comprar`
+  - compra un objeto del mercado personal del jugador autenticado.
+
+- `POST /api/partidas/{id}/mercado/usar`
+  - usa un objeto ya comprado.
+  - el `idJugador` no se manda en body: se obtiene del token.
+
+Body base para usar objeto:
+
+```json
+{
+  "codigoObjeto": "MIDAS_TOUCH"
+}
+```
+
+Campos posibles del body:
+
+- `codigoObjeto`: obligatorio.
+- `idJugadorObjetivo`: obligatorio si el objeto afecta a otro jugador.
+- `codigoObjetoObjetivo`: se usa en la confirmacion de `WHITE_GLOVE`.
+- `fichaPropia`: se usa en la confirmacion de `SWAP_ON_FAIL`.
+- `fichaObjetivo`: se usa en la confirmacion de `SWAP_ON_FAIL`.
+
+Respuesta de uso:
+
+- `consumido`
+- `bloqueadoPorGuardianAngel`
+- `mensaje`
+- `manoActual`
+- `habilidadesCompradas`
+- `efectosActivos`
+- `fichasObjetivoVisibles`
+- `habilidadesObjetivoVisibles`
+- `efectosActivosObjetivo`
+
+Notas de comportamiento:
+
+- `GUARDIAN_ANGEL` es pasivo y no se usa activamente.
+- `SWAP_ON_FAIL` y `WHITE_GLOVE` funcionan en dos pasos:
+  - primero preview
+  - luego confirmacion
+- `SMOKE_BOMB` deja el efecto activo en backend, pero el ocultado visual del tablero lo gestiona frontend.
+- `CHILI_PEPPER` reduce a la mitad el siguiente turno del objetivo.
+- `GLASS_CEILING` obliga a que la siguiente jugada del objetivo aporte `30` puntos o mas.
+
+#### Ejemplo de flujo: objeto sobre uno mismo
+
+Caso: `MIDAS_TOUCH`
+
+1. Front consulta inventario/mercado:
+   - `GET /api/partidas/15/mercado`
+2. Front detecta que el jugador tiene `MIDAS_TOUCH` en `habilidadesCompradas`.
+3. Front lanza:
+
+```json
+POST /api/partidas/15/mercado/usar
+{
+  "codigoObjeto": "MIDAS_TOUCH"
+}
+```
+
+4. Backend consume el objeto y devuelve la mano actualizada en `manoActual`.
+5. Front refresca la mano local y elimina el objeto del inventario visual.
+
+#### Ejemplo de flujo: objeto sobre otro jugador
+
+Caso: `WHITE_GLOVE`
+
+Paso 1, preview:
+
+```json
+POST /api/partidas/15/mercado/usar
+{
+  "codigoObjeto": "WHITE_GLOVE",
+  "idJugadorObjetivo": 22
+}
+```
+
+Frontend recibe:
+
+- `consumido=false`
+- `habilidadesObjetivoVisibles=[...]`
+
+Paso 2, confirmacion:
+
+```json
+POST /api/partidas/15/mercado/usar
+{
+  "codigoObjeto": "WHITE_GLOVE",
+  "idJugadorObjetivo": 22,
+  "codigoObjetoObjetivo": "SMOKE_BOMB"
+}
+```
+
+Resultado esperado:
+
+- backend roba exactamente ese objeto al objetivo
+- `consumido=true`
+- el inventario del actor se actualiza en `habilidadesCompradas`
+- frontend actualiza su inventario visual con la respuesta

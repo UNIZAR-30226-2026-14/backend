@@ -7,6 +7,7 @@ import com.rummikub.server.api.dto.bot.BotMoveRequest;
 import com.rummikub.server.api.dto.bot.BotMoveResponse;
 import com.rummikub.server.api.dto.partida.MercadoItemDTO;
 import com.rummikub.server.api.dto.partida.MercadoParticipacionDTO;
+import com.rummikub.server.api.dto.partida.UsarObjetoMercadoResponse;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionId;
@@ -52,12 +53,13 @@ public class PartidaService {
     private static final int BOT_LEVEL = 5;
     private static final double BOT_RANDOMNESS = 0.20;
     private static final int MAX_AUTOMATED_BOT_TURNS = 16;
-    private static final int MARKET_OBJECTS_PER_PLAYER = 4;
+    private static final int MARKET_OBJECTS_PER_PLAYER = 3;
     private static final int MARKET_ITEM_STOCK = 1;
+    private static final int SWAP_ON_FAIL_VISIBLE_TILES = 3;
     private static final int INACTIVITY_LIMIT_TURNS = 2;
     private static final String JOKER_CANONICAL = "J*";
     private static final int ARCADE_GOLD_DUPLICATES_PER_VALUE = 1;
-    private static final int ARCADE_RAINBOW_DUPLICATES_PER_VALUE = 1;
+    private static final double ARCADE_RAINBOW_DRAW_CHANCE = 0.20;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String ESTADO_WAITING = "WAITING";
@@ -67,17 +69,33 @@ public class PartidaService {
 
     private static final Pattern TILE_PATTERN = Pattern.compile("^([RBOK])(1[0-3]|0?[1-9])([AD]?)$");
     private static final Pattern TILE_PREFIX_PATTERN = Pattern.compile("^([AD])([RBOK])(1[0-3]|0?[1-9])$");
-    private static final Pattern MARKET_OBJECT_PATTERN = Pattern.compile("^(obj[1-7])$", Pattern.CASE_INSENSITIVE);
-    private static final List<String> MARKET_OBJECT_CODES = List.of("obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7");
-    private static final Map<String, Integer> MARKET_OBJECT_VALUES = Map.of(
-            "obj1", 10,
-            "obj2", 20,
-            "obj3", 30,
-            "obj4", 40,
-            "obj5", 50,
-            "obj6", 60,
-            "obj7", 70
+    private static final Pattern MARKET_OBJECT_PATTERN = Pattern.compile(
+            "^(GUARDIAN_ANGEL|CRYSTAL_BALL|MIDAS_TOUCH|PLUS_FOUR|SWAP_ON_FAIL|WHITE_GLOVE|SMOKE_BOMB|CHILI_PEPPER|GLASS_CEILING)$",
+            Pattern.CASE_INSENSITIVE
     );
+    private static final List<String> MARKET_OBJECT_CODES = List.of(
+            "GUARDIAN_ANGEL",
+            "CRYSTAL_BALL",
+            "MIDAS_TOUCH",
+            "PLUS_FOUR",
+            "SWAP_ON_FAIL",
+            "WHITE_GLOVE",
+            "SMOKE_BOMB",
+            "CHILI_PEPPER",
+            "GLASS_CEILING"
+    );
+    private static final Map<String, Integer> MARKET_OBJECT_VALUES = Map.of(
+            "GUARDIAN_ANGEL", 10,
+            "CRYSTAL_BALL", 20,
+            "MIDAS_TOUCH", 30,
+            "PLUS_FOUR", 40,
+            "SWAP_ON_FAIL", 50,
+            "WHITE_GLOVE", 60,
+            "SMOKE_BOMB", 70,
+            "CHILI_PEPPER", 80,
+            "GLASS_CEILING", 90
+    );
+    private static final String EFFECT_PREFIX = "FX:";
     private static final List<String> ARCADE_BASE_EVENTS = List.of(
             "+pieza",
             "50porcien"
@@ -155,7 +173,8 @@ public class PartidaService {
         ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
         validateArcadeModeForMarket(partida);
         List<String> habilidadesCompradas = parsePurchasedObjectCodes(participacion.getHabilidadesActuales());
-        String serializedHabilidades = serializePurchasedObjectCodes(habilidadesCompradas);
+        List<String> efectosActivos = parseActiveEffectCodes(participacion.getHabilidadesActuales());
+        String serializedHabilidades = serializeHabilidadesState(habilidadesCompradas, efectosActivos);
         if (!serializedHabilidades.equals(safe(participacion.getHabilidadesActuales()))) {
             participacion.setHabilidadesActuales(serializedHabilidades);
             participacionRepository.save(participacion);
@@ -163,7 +182,7 @@ public class PartidaService {
 
         LinkedHashMap<String, Integer> stockByCode = getOrCreateMarketStockByPlayer(partida, idJugador);
         return buildMercadoParticipacionDTO(idPartida, idJugador, participacion.getJugador().getMonedas(), stockByCode,
-                habilidadesCompradas);
+                habilidadesCompradas, efectosActivos);
     }
 
     @Transactional
@@ -199,8 +218,9 @@ public class PartidaService {
         updateMarketStockByPlayer(partida, idJugador, stockByCode);
 
         List<String> habilidadesCompradas = parsePurchasedObjectCodes(participacion.getHabilidadesActuales());
+        List<String> efectosActivos = parseActiveEffectCodes(participacion.getHabilidadesActuales());
         habilidadesCompradas.add(codigoObjeto);
-        participacion.setHabilidadesActuales(serializePurchasedObjectCodes(habilidadesCompradas));
+        participacion.setHabilidadesActuales(serializeHabilidadesState(habilidadesCompradas, efectosActivos));
         participacionRepository.save(participacion);
 
         return buildMercadoParticipacionDTO(
@@ -208,7 +228,176 @@ public class PartidaService {
                 idJugador,
                 jugador.getMonedas(),
                 stockByCode,
-                habilidadesCompradas
+                habilidadesCompradas,
+                efectosActivos
+        );
+    }
+
+    @Transactional
+    public UsarObjetoMercadoResponse usarObjetoMercado(
+            Integer idPartida,
+            Integer idJugador,
+            String codigoObjetoRaw,
+            Integer idJugadorObjetivo,
+            String codigoObjetoObjetivoRaw,
+            String fichaPropiaRaw,
+            String fichaObjetivoRaw) {
+        PartidaEntity partida = partidaRepository.findById(idPartida)
+                .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
+        ensureDefaultState(partida);
+        validateArcadeModeForMarket(partida);
+
+        ParticipacionEntity actor = mustGetParticipacion(idPartida, idJugador);
+        String codigoObjeto = normalizeMarketObjectCode(codigoObjetoRaw);
+        if ("GUARDIAN_ANGEL".equals(codigoObjeto)) {
+            throw new IllegalStateException("GUARDIAN_ANGEL es pasivo y no puede usarse activamente");
+        }
+
+        List<String> actorInventario = parsePurchasedObjectCodes(actor.getHabilidadesActuales());
+        List<String> actorEfectos = parseActiveEffectCodes(actor.getHabilidadesActuales());
+        if (!actorInventario.remove(codigoObjeto)) {
+            throw new IllegalStateException("No tienes el objeto " + codigoObjeto + " en tu inventario");
+        }
+
+        ParticipacionEntity objetivo = null;
+        List<String> objetivoInventario = List.of();
+        List<String> objetivoEfectos = List.of();
+        if (requiresTarget(codigoObjeto)) {
+            if (idJugadorObjetivo == null) {
+                throw new IllegalArgumentException("idJugadorObjetivo es obligatorio para " + codigoObjeto);
+            }
+            if (idJugador.equals(idJugadorObjetivo)) {
+                throw new IllegalArgumentException("No puedes usar " + codigoObjeto + " sobre ti mismo");
+            }
+            objetivo = mustGetParticipacion(idPartida, idJugadorObjetivo);
+            objetivoInventario = new ArrayList<>(parsePurchasedObjectCodes(objetivo.getHabilidadesActuales()));
+            objetivoEfectos = new ArrayList<>(parseActiveEffectCodes(objetivo.getHabilidadesActuales()));
+
+            if (tryBlockWithGuardianAngel(objetivo, objetivoInventario, objetivoEfectos)) {
+                actor.setHabilidadesActuales(serializeHabilidadesState(actorInventario, actorEfectos));
+                participacionRepository.save(actor);
+                return buildUsarObjetoResponse(
+                        partida,
+                        actor,
+                        codigoObjeto,
+                        idJugadorObjetivo,
+                        true,
+                        true,
+                        "El objeto fue bloqueado por GUARDIAN_ANGEL",
+                        List.of(),
+                        null,
+                        objetivoInventario,
+                        objetivoEfectos
+                );
+            }
+        }
+
+        List<String> fichasObjetivoVisibles = List.of();
+        List<String> habilidadesObjetivoVisibles = null;
+        String mensaje;
+
+        switch (codigoObjeto) {
+            case "CRYSTAL_BALL" -> {
+                fichasObjetivoVisibles = parseTileList(objetivo.getManoActual());
+                habilidadesObjetivoVisibles = new ArrayList<>(objetivoInventario);
+                mensaje = "CRYSTAL_BALL usada correctamente";
+            }
+            case "MIDAS_TOUCH" -> {
+                applyMidasTouch(actor);
+                mensaje = "MIDAS_TOUCH aplicada sobre tu mano";
+            }
+            case "PLUS_FOUR" -> {
+                drawTilesForTarget(partida, objetivo, 4);
+                mensaje = "PLUS_FOUR aplicada al jugador objetivo";
+            }
+            case "SWAP_ON_FAIL" -> {
+                List<String> preview = getSwapOnFailPreview(objetivo);
+                if (fichaPropiaRaw == null || fichaPropiaRaw.isBlank() || fichaObjetivoRaw == null || fichaObjetivoRaw.isBlank()) {
+                    actorInventario.add(codigoObjeto);
+                    return buildUsarObjetoResponse(
+                            partida,
+                            actor,
+                            codigoObjeto,
+                            idJugadorObjetivo,
+                            false,
+                            false,
+                            "Elige una ficha tuya y una de las visibles del objetivo para completar el intercambio",
+                            preview,
+                            null,
+                            objetivoInventario,
+                            objetivoEfectos
+                    );
+                }
+                applySwapOnFail(actor, objetivo, preview, fichaPropiaRaw, fichaObjetivoRaw);
+                fichasObjetivoVisibles = preview;
+                mensaje = "SWAP_ON_FAIL aplicada correctamente";
+            }
+            case "WHITE_GLOVE" -> {
+                if (objetivoInventario.isEmpty()) {
+                    mensaje = "WHITE_GLOVE no encontro objetos que robar";
+                } else {
+                    habilidadesObjetivoVisibles = new ArrayList<>(objetivoInventario);
+                    if (codigoObjetoObjetivoRaw == null || codigoObjetoObjetivoRaw.isBlank()) {
+                        actorInventario.add(codigoObjeto);
+                        return buildUsarObjetoResponse(
+                                partida,
+                                actor,
+                                codigoObjeto,
+                                idJugadorObjetivo,
+                                false,
+                                false,
+                                "Elige uno de los objetos del objetivo para robarselo",
+                                List.of(),
+                                habilidadesObjetivoVisibles,
+                                objetivoInventario,
+                                objetivoEfectos
+                        );
+                    }
+                    String codigoObjetoObjetivo = normalizeMarketObjectCode(codigoObjetoObjetivoRaw);
+                    if (!objetivoInventario.remove(codigoObjetoObjetivo)) {
+                        throw new IllegalArgumentException("El jugador objetivo no tiene el objeto " + codigoObjetoObjetivo);
+                    }
+                    String robbed = codigoObjetoObjetivo;
+                    actorInventario.add(robbed);
+                    mensaje = "WHITE_GLOVE robo el objeto " + robbed;
+                }
+            }
+            case "SMOKE_BOMB" -> {
+                addActiveEffect(objetivoEfectos, "SMOKE_BOMB");
+                mensaje = "SMOKE_BOMB aplicada al jugador objetivo";
+            }
+            case "CHILI_PEPPER" -> {
+                addActiveEffect(objetivoEfectos, "CHILI_PEPPER");
+                mensaje = "CHILI_PEPPER aplicada al jugador objetivo";
+            }
+            case "GLASS_CEILING" -> {
+                addActiveEffect(objetivoEfectos, "GLASS_CEILING");
+                mensaje = "GLASS_CEILING aplicada al jugador objetivo";
+            }
+            default -> throw new IllegalArgumentException("Objeto no soportado para uso: " + codigoObjeto);
+        }
+
+        actor.setHabilidadesActuales(serializeHabilidadesState(actorInventario, actorEfectos));
+        participacionRepository.save(actor);
+
+        if (objetivo != null) {
+            objetivo.setHabilidadesActuales(serializeHabilidadesState(objetivoInventario, objetivoEfectos));
+            participacionRepository.save(objetivo);
+        }
+        partidaRepository.save(partida);
+
+        return buildUsarObjetoResponse(
+                partida,
+                actor,
+                codigoObjeto,
+                idJugadorObjetivo,
+                true,
+                false,
+                mensaje,
+                fichasObjetivoVisibles,
+                habilidadesObjetivoVisibles,
+                objetivoInventario,
+                objetivoEfectos
         );
     }
 
@@ -407,7 +596,7 @@ public class PartidaService {
                 throw new IllegalStateException("No quedan fichas en la bolsa");
             }
 
-            String drawnTile = bag.remove(0);
+            String drawnTile = applyArcadeRainbowOnDraw(partida, bag.remove(0));
             List<String> hand = parseTileList(participacion.getManoActual());
             hand.add(drawnTile);
 
@@ -442,7 +631,7 @@ public class PartidaService {
             int drawCount = Math.min(requested, bag.size());
             List<String> drawnTiles = new ArrayList<>(drawCount);
             for (int i = 0; i < drawCount; i++) {
-                drawnTiles.add(bag.remove(0));
+                drawnTiles.add(applyArcadeRainbowOnDraw(partida, bag.remove(0)));
             }
             List<String> hand = parseTileList(participacion.getManoActual());
             hand.addAll(drawnTiles);
@@ -491,8 +680,10 @@ public class PartidaService {
             }
 
             List<String> updatedHand = removeTilesFromHand(hand, playedTiles);
+            enforceGlassCeilingIfNeeded(participacion, playedTiles);
             participacion.setManoActual(serializeTileList(updatedHand));
             participacion.setFichasActuales(updatedHand.size());
+            awardObjectsForRainbowTilesRemovedFromHand(participacion, playedTiles);
             participacion.setTurnosInactivo(0);
             participacionRepository.save(participacion);
 
@@ -807,7 +998,7 @@ public class PartidaService {
         if (bag.isEmpty()) {
             return;
         }
-        String drawn = bag.remove(0);
+        String drawn = applyArcadeRainbowOnDraw(partida, bag.remove(0));
         List<String> hand = parseTileList(participacion.getManoActual());
         hand.add(drawn);
         participacion.setManoActual(serializeTileList(hand));
@@ -815,6 +1006,191 @@ public class PartidaService {
         participacion.setTurnosInactivo(0);
         participacionRepository.save(participacion);
         partida.setBolsa(serializeTileList(bag));
+    }
+
+    private boolean requiresTarget(String codigoObjeto) {
+        return switch (codigoObjeto) {
+            case "CRYSTAL_BALL", "PLUS_FOUR", "SWAP_ON_FAIL", "WHITE_GLOVE", "SMOKE_BOMB", "CHILI_PEPPER",
+                    "GLASS_CEILING" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean tryBlockWithGuardianAngel(
+            ParticipacionEntity objetivo,
+            List<String> objetivoInventario,
+            List<String> objetivoEfectos) {
+        if (objetivo == null || objetivoInventario == null) {
+            return false;
+        }
+        int guardianIndex = objetivoInventario.indexOf("GUARDIAN_ANGEL");
+        if (guardianIndex < 0) {
+            return false;
+        }
+        objetivoInventario.remove(guardianIndex);
+        objetivo.setHabilidadesActuales(serializeHabilidadesState(objetivoInventario, objetivoEfectos));
+        participacionRepository.save(objetivo);
+        return true;
+    }
+
+    private void drawTilesForTarget(PartidaEntity partida, ParticipacionEntity objetivo, int cantidad) {
+        List<String> bag = parseTileList(partida.getBolsa());
+        List<String> hand = parseTileList(objetivo.getManoActual());
+        int drawCount = Math.min(Math.max(cantidad, 0), bag.size());
+        for (int i = 0; i < drawCount; i++) {
+            hand.add(bag.remove(0));
+        }
+        objetivo.setManoActual(serializeTileList(hand));
+        objetivo.setFichasActuales(hand.size());
+        participacionRepository.save(objetivo);
+        partida.setBolsa(serializeTileList(bag));
+    }
+
+    private void applyMidasTouch(ParticipacionEntity actor) {
+        List<String> hand = parseTileList(actor.getManoActual());
+        List<Integer> candidates = new ArrayList<>();
+        for (int i = 0; i < hand.size(); i++) {
+            String tile = hand.get(i);
+            if (!isJoker(tile) && !isArcadeGold(tile)) {
+                candidates.add(i);
+            }
+        }
+        if (candidates.isEmpty()) {
+            participacionRepository.save(actor);
+            return;
+        }
+        Collections.shuffle(candidates);
+        int maxTransforms = Math.min(4, candidates.size());
+        int minTransforms = Math.min(2, maxTransforms);
+        int transformCount = ThreadLocalRandom.current().nextInt(minTransforms, maxTransforms + 1);
+        for (int i = 0; i < transformCount; i++) {
+            int index = candidates.get(i);
+            hand.set(index, convertTileToGold(hand.get(index)));
+        }
+        actor.setManoActual(serializeTileList(hand));
+        actor.setFichasActuales(hand.size());
+        participacionRepository.save(actor);
+    }
+
+    private String convertTileToGold(String tile) {
+        if (tile == null || tile.isBlank() || isJoker(tile)) {
+            return tile;
+        }
+        String normalized = normalizeTile(tile);
+        char color = parseColor(normalized);
+        int value = parseValue(normalized);
+        return color + String.format("%02d", value) + "D";
+    }
+
+    private List<String> getSwapOnFailPreview(ParticipacionEntity objetivo) {
+        List<String> hand = parseTileList(objetivo.getManoActual());
+        int limit = Math.min(SWAP_ON_FAIL_VISIBLE_TILES, hand.size());
+        return new ArrayList<>(hand.subList(0, limit));
+    }
+
+    private void applySwapOnFail(
+            ParticipacionEntity actor,
+            ParticipacionEntity objetivo,
+            List<String> preview,
+            String fichaPropiaRaw,
+            String fichaObjetivoRaw) {
+        String fichaPropia = normalizeTile(fichaPropiaRaw);
+        String fichaObjetivo = normalizeTile(fichaObjetivoRaw);
+        if (!preview.contains(fichaObjetivo)) {
+            throw new IllegalArgumentException("La ficha objetivo debe estar entre las 3 visibles");
+        }
+
+        List<String> handActor = parseTileList(actor.getManoActual());
+        List<String> handObjetivo = parseTileList(objetivo.getManoActual());
+        if (!handActor.remove(fichaPropia)) {
+            throw new IllegalStateException("No tienes la ficha " + fichaPropia + " en tu mano");
+        }
+        if (!handObjetivo.remove(fichaObjetivo)) {
+            throw new IllegalStateException("La ficha objetivo ya no esta disponible");
+        }
+
+        handActor.add(fichaObjetivo);
+        handObjetivo.add(fichaPropia);
+        actor.setManoActual(serializeTileList(handActor));
+        actor.setFichasActuales(handActor.size());
+        awardObjectsForRainbowTilesRemovedFromHand(actor, List.of(fichaPropia));
+        objetivo.setManoActual(serializeTileList(handObjetivo));
+        objetivo.setFichasActuales(handObjetivo.size());
+        awardObjectsForRainbowTilesRemovedFromHand(objetivo, List.of(fichaObjetivo));
+        participacionRepository.save(actor);
+        participacionRepository.save(objetivo);
+    }
+
+    private void addActiveEffect(List<String> effects, String effectCode) {
+        if (effects == null || effectCode == null || effectCode.isBlank()) {
+            return;
+        }
+        if (!effects.contains(effectCode)) {
+            effects.add(effectCode);
+        }
+    }
+
+    private boolean hasActiveEffect(ParticipacionEntity participacion, String effectCode) {
+        return parseActiveEffectCodes(participacion.getHabilidadesActuales()).contains(effectCode);
+    }
+
+    private boolean consumeActiveEffect(ParticipacionEntity participacion, String effectCode) {
+        List<String> inventory = parsePurchasedObjectCodes(participacion.getHabilidadesActuales());
+        List<String> effects = parseActiveEffectCodes(participacion.getHabilidadesActuales());
+        boolean removed = effects.remove(effectCode);
+        if (removed) {
+            participacion.setHabilidadesActuales(serializeHabilidadesState(inventory, effects));
+            participacionRepository.save(participacion);
+        }
+        return removed;
+    }
+
+    private UsarObjetoMercadoResponse buildUsarObjetoResponse(
+            PartidaEntity partida,
+            ParticipacionEntity actor,
+            String codigoObjeto,
+            Integer idJugadorObjetivo,
+            boolean consumido,
+            boolean bloqueadoPorGuardianAngel,
+            String mensaje,
+            List<String> fichasObjetivoVisibles,
+            List<String> habilidadesObjetivoVisibles,
+            List<String> objetivoInventario,
+            List<String> objetivoEfectos) {
+        return UsarObjetoMercadoResponse.builder()
+                .idPartida(partida.getIdPartida())
+                .idJugador(actor.getJugador().getId())
+                .codigoObjeto(codigoObjeto)
+                .idJugadorObjetivo(idJugadorObjetivo)
+                .consumido(consumido)
+                .bloqueadoPorGuardianAngel(bloqueadoPorGuardianAngel)
+                .mensaje(mensaje)
+                .manoActual(serializeTileList(parseTileList(actor.getManoActual())))
+                .habilidadesCompradas(parsePurchasedObjectCodes(actor.getHabilidadesActuales()))
+                .efectosActivos(parseActiveEffectCodes(actor.getHabilidadesActuales()))
+                .fichasObjetivoVisibles(fichasObjetivoVisibles == null ? List.of() : new ArrayList<>(fichasObjetivoVisibles))
+                .habilidadesObjetivoVisibles(habilidadesObjetivoVisibles == null ? null : new ArrayList<>(habilidadesObjetivoVisibles))
+                .efectosActivosObjetivo(objetivoEfectos == null ? List.of() : new ArrayList<>(objetivoEfectos))
+                .build();
+    }
+
+    private int resolveTurnDurationSeconds(Integer idPartida, int turnSlot) {
+        ParticipacionEntity participacion = getParticipacionByTurn(idPartida, turnSlot);
+        if (participacion != null && consumeActiveEffect(participacion, "CHILI_PEPPER")) {
+            return TURN_TIMEOUT_SECONDS / 2;
+        }
+        return TURN_TIMEOUT_SECONDS;
+    }
+
+    private void enforceGlassCeilingIfNeeded(ParticipacionEntity participacion, List<String> playedTiles) {
+        if (participacion == null || !hasActiveEffect(participacion, "GLASS_CEILING")) {
+            return;
+        }
+        int points = calculateHandPoints(playedTiles == null ? List.of() : playedTiles);
+        if (points < 30) {
+            throw new IllegalStateException("La siguiente jugada de este jugador debe sumar 30 puntos o mas");
+        }
+        consumeActiveEffect(participacion, "GLASS_CEILING");
     }
 
     private PartidaDTO jugarExtendHumano(
@@ -855,8 +1231,10 @@ public class PartidaService {
         }
 
         List<String> updatedHand = removeTilesFromHand(hand, List.of(tile));
+        enforceGlassCeilingIfNeeded(participacion, List.of(tile));
         participacion.setManoActual(serializeTileList(updatedHand));
         participacion.setFichasActuales(updatedHand.size());
+        awardObjectsForRainbowTilesRemovedFromHand(participacion, List.of(tile));
         participacion.setTurnosInactivo(0);
         participacionRepository.save(participacion);
 
@@ -905,8 +1283,10 @@ public class PartidaService {
 
         List<String> tilesToRemove = expandCountMap(usedFromHand);
         List<String> updatedHand = removeTilesFromHand(hand, tilesToRemove);
+        enforceGlassCeilingIfNeeded(participacion, tilesToRemove);
         participacion.setManoActual(serializeTileList(updatedHand));
         participacion.setFichasActuales(updatedHand.size());
+        awardObjectsForRainbowTilesRemovedFromHand(participacion, tilesToRemove);
         participacionRepository.save(participacion);
 
         partida.setConjuntoMesa(serializeMesaGroups(normalized));
@@ -1006,6 +1386,7 @@ public class PartidaService {
         List<String> updatedHand = removeTilesFromHand(hand, List.of(tile));
         botParticipacion.setManoActual(serializeTileList(updatedHand));
         botParticipacion.setFichasActuales(updatedHand.size());
+        awardObjectsForRainbowTilesRemovedFromHand(botParticipacion, List.of(tile));
         botParticipacion.setTurnosInactivo(0);
         participacionRepository.save(botParticipacion);
 
@@ -1056,6 +1437,7 @@ public class PartidaService {
         List<String> updatedHand = removeTilesFromHand(hand, tilesToRemove);
         botParticipacion.setManoActual(serializeTileList(updatedHand));
         botParticipacion.setFichasActuales(updatedHand.size());
+        awardObjectsForRainbowTilesRemovedFromHand(botParticipacion, tilesToRemove);
         botParticipacion.setTurnosInactivo(0);
         participacionRepository.save(botParticipacion);
 
@@ -1284,7 +1666,7 @@ public class PartidaService {
 
         int nextTurn = nextOccupiedTurn(currentTurn, runtime.occupiedSlots);
         runtime.currentTurn = nextTurn;
-        runtime.deadline = now.plusSeconds(TURN_TIMEOUT_SECONDS);
+        runtime.deadline = now.plusSeconds(resolveTurnDurationSeconds(partida.getIdPartida(), nextTurn));
 
         partida.setTurno(nextTurn);
         partida.setTurnoInicio(now);
@@ -1403,14 +1785,11 @@ public class PartidaService {
         bag.add(JOKER_CANONICAL);
 
         if (modoArcade) {
-            // En arcade las habilidades son sufijos de la ficha base (A, D), igual que IA.
+            // En arcade las doradas forman parte de la bolsa. Las arcoiris se generan al robar.
             for (String color : colors) {
                 for (int value = 1; value <= 13; value++) {
                     for (int copies = 0; copies < ARCADE_GOLD_DUPLICATES_PER_VALUE; copies++) {
                         bag.add(color + String.format("%02d", value) + "D");
-                    }
-                    for (int copies = 0; copies < ARCADE_RAINBOW_DUPLICATES_PER_VALUE; copies++) {
-                        bag.add(color + String.format("%02d", value) + "A");
                     }
                 }
             }
@@ -1467,7 +1846,7 @@ public class PartidaService {
             ParticipacionEntity timedOut = getParticipacionByTurn(idPartida, baseTurn);
             maybeReplaceInactivePlayerWithBot(partida, timedOut);
             runtime.currentTurn = nextTurn;
-            runtime.deadline = now.plusSeconds(TURN_TIMEOUT_SECONDS);
+            runtime.deadline = now.plusSeconds(resolveTurnDurationSeconds(idPartida, nextTurn));
 
             partida.setTurno(nextTurn);
             partida.setTurnoInicio(now);
@@ -1493,7 +1872,7 @@ public class PartidaService {
         }
 
         LocalDateTime deadline = (partida.getTurnoInicio() == null ? now : partida.getTurnoInicio())
-                .plusSeconds(TURN_TIMEOUT_SECONDS);
+                .plusSeconds(resolveTurnDurationSeconds(partida.getIdPartida(), currentTurn));
         return new TurnRuntime(occupiedSlots, currentTurn, deadline);
     }
 
@@ -1615,7 +1994,7 @@ public class PartidaService {
         Integer value = null;
         Set<Character> colors = new HashSet<>();
         for (String tile : group) {
-            if (isJoker(tile) || isArcadeWildcard(tile)) {
+            if (isJoker(tile)) {
                 continue;
             }
             int tileValue = parseValue(tile);
@@ -1642,7 +2021,7 @@ public class PartidaService {
         List<Integer> values = new ArrayList<>();
 
         for (String tile : group) {
-            if (isJoker(tile) || isArcadeWildcard(tile)) {
+            if (isJoker(tile)) {
                 jokerCount++;
                 continue;
             }
@@ -1734,10 +2113,29 @@ public class PartidaService {
 
             Matcher matcher = MARKET_OBJECT_PATTERN.matcher(token);
             if (matcher.matches()) {
-                codes.add(matcher.group(1).toLowerCase(Locale.ROOT));
+                codes.add(matcher.group(1).toUpperCase(Locale.ROOT));
             }
         }
         return codes;
+    }
+
+    private List<String> parseActiveEffectCodes(String encoded) {
+        List<String> effects = new ArrayList<>();
+        if (encoded == null || encoded.isBlank()) {
+            return effects;
+        }
+
+        String[] parts = encoded.split(",");
+        for (String rawPart : parts) {
+            String token = rawPart == null ? "" : rawPart.trim();
+            if (token.regionMatches(true, 0, EFFECT_PREFIX, 0, EFFECT_PREFIX.length())) {
+                String effect = token.substring(EFFECT_PREFIX.length()).trim().toUpperCase(Locale.ROOT);
+                if (!effect.isBlank()) {
+                    effects.add(effect);
+                }
+            }
+        }
+        return effects;
     }
 
     private List<List<String>> parseMesaGroups(String encoded) {
@@ -1783,12 +2181,12 @@ public class PartidaService {
         if (rawCode == null || rawCode.isBlank()) {
             throw new IllegalArgumentException("Codigo de objeto vacio");
         }
-        String candidate = rawCode.trim().toLowerCase(Locale.ROOT);
+        String candidate = rawCode.trim().toUpperCase(Locale.ROOT);
         Matcher matcher = MARKET_OBJECT_PATTERN.matcher(candidate);
         if (!matcher.matches()) {
             throw new IllegalArgumentException("Objeto de mercado invalido: " + rawCode);
         }
-        return matcher.group(1).toLowerCase(Locale.ROOT);
+        return matcher.group(1).toUpperCase(Locale.ROOT);
     }
 
     private List<String> createRandomMarketObjectCodes() {
@@ -1976,20 +2374,26 @@ public class PartidaService {
         }
     }
 
-    private String serializePurchasedObjectCodes(List<String> purchasedCodes) {
-        if (purchasedCodes == null || purchasedCodes.isEmpty()) {
-            return "";
-        }
-
+    private String serializeHabilidadesState(List<String> purchasedCodes, List<String> activeEffectCodes) {
         List<String> encoded = new ArrayList<>();
-        for (String codeRaw : purchasedCodes) {
-            if (codeRaw == null || codeRaw.isBlank()) {
-                continue;
+        if (purchasedCodes != null) {
+            for (String codeRaw : purchasedCodes) {
+                if (codeRaw == null || codeRaw.isBlank()) {
+                    continue;
+                }
+                try {
+                    encoded.add(normalizeMarketObjectCode(codeRaw));
+                } catch (IllegalArgumentException ex) {
+                    // Ignoramos codigos antiguos/no validos en datos legacy.
+                }
             }
-            try {
-                encoded.add(normalizeMarketObjectCode(codeRaw));
-            } catch (IllegalArgumentException ex) {
-                // Ignoramos codigos antiguos/no validos en datos legacy.
+        }
+        if (activeEffectCodes != null) {
+            for (String effectRaw : activeEffectCodes) {
+                if (effectRaw == null || effectRaw.isBlank()) {
+                    continue;
+                }
+                encoded.add(EFFECT_PREFIX + effectRaw.trim().toUpperCase(Locale.ROOT));
             }
         }
         return String.join(",", encoded);
@@ -2000,13 +2404,15 @@ public class PartidaService {
             Integer idJugador,
             int monedasJugador,
             Map<String, Integer> stockByCode,
-            List<String> habilidadesCompradas) {
+            List<String> habilidadesCompradas,
+            List<String> efectosActivos) {
         return MercadoParticipacionDTO.builder()
                 .idPartida(idPartida)
                 .idJugador(idJugador)
                 .monedasJugador(monedasJugador)
                 .objetosMercado(toMercadoItems(stockByCode))
                 .habilidadesCompradas(new ArrayList<>(habilidadesCompradas))
+                .efectosActivos(new ArrayList<>(efectosActivos))
                 .build();
     }
 
@@ -2075,7 +2481,7 @@ public class PartidaService {
             if (current <= 0) {
                 continue;
             }
-            if (isJoker(key) || isArcadeWildcard(key)) {
+            if (isJoker(key)) {
                 countMap.put(key, current - 1);
                 return key;
             }
@@ -2122,6 +2528,47 @@ public class PartidaService {
         }
         String normalized = tile.trim().toUpperCase(Locale.ROOT);
         return normalized.matches("^[RBOK](0[1-9]|1[0-3]).*A.*$");
+    }
+
+    private String applyArcadeRainbowOnDraw(PartidaEntity partida, String drawnTile) {
+        if (drawnTile == null || drawnTile.isBlank() || partida == null || !partida.isModoArcade()) {
+            return drawnTile;
+        }
+        String normalized = normalizeTile(drawnTile);
+        if (isJoker(normalized) || isArcadeGold(normalized) || isArcadeWildcard(normalized)) {
+            return normalized;
+        }
+        if (ThreadLocalRandom.current().nextDouble() >= ARCADE_RAINBOW_DRAW_CHANCE) {
+            return normalized;
+        }
+        return normalizeTile(normalized + "A");
+    }
+
+    private void awardObjectsForRainbowTilesRemovedFromHand(ParticipacionEntity participacion, List<String> removedTiles) {
+        if (participacion == null || removedTiles == null || removedTiles.isEmpty()) {
+            return;
+        }
+
+        int rainbowCount = 0;
+        for (String tile : removedTiles) {
+            if (isArcadeWildcard(tile)) {
+                rainbowCount++;
+            }
+        }
+        if (rainbowCount <= 0) {
+            return;
+        }
+
+        List<String> inventario = parsePurchasedObjectCodes(participacion.getHabilidadesActuales());
+        List<String> efectosActivos = parseActiveEffectCodes(participacion.getHabilidadesActuales());
+        for (int i = 0; i < rainbowCount; i++) {
+            inventario.add(randomMarketObjectCode());
+        }
+        participacion.setHabilidadesActuales(serializeHabilidadesState(inventario, efectosActivos));
+    }
+
+    private String randomMarketObjectCode() {
+        return MARKET_OBJECT_CODES.get(ThreadLocalRandom.current().nextInt(MARKET_OBJECT_CODES.size()));
     }
 
     private String canonicalizeArcadeSuffix(String rawSuffix) {

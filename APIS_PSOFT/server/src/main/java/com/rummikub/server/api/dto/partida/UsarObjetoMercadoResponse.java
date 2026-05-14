@@ -13,11 +13,18 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class MercadoParticipacionDTO {
+public class UsarObjetoMercadoResponse {
     private Integer idPartida;
     private Integer idJugador;
-    private int monedasJugador;
-    private List<MercadoItemDTO> objetosMercado;
+    private String codigoObjeto;
+    private Integer idJugadorObjetivo;
+    private boolean consumido;
+    private boolean bloqueadoPorGuardianAngel;
+    private String mensaje;
+    private String manoActual;
     private List<String> habilidadesCompradas;
     private List<String> efectosActivos;
+    private List<String> fichasObjetivoVisibles;
+    private List<String> habilidadesObjetivoVisibles;
+    private List<String> efectosActivosObjetivo;
 }
