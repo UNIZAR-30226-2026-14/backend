@@ -569,7 +569,7 @@ Campos posibles del body:
 
 - `codigoObjeto`: obligatorio.
 - `idJugadorObjetivo`: obligatorio si el objeto afecta a otro jugador.
-- `codigoObjetoObjetivo`: no se usa en `WHITE_GLOVE` (ahora roba aleatorio en un solo paso).
+- `codigoObjetoObjetivo`: actualmente no se usa.
 - `fichaPropia`: se usa en la confirmacion de `SWAP_ON_FAIL`.
 - `fichaObjetivo`: se usa en la confirmacion de `SWAP_ON_FAIL`.
 
@@ -617,6 +617,11 @@ Notas de comportamiento:
   - se consumen al usarse
   - se guardan/exponen en `efectosActivos`
   - frontend decide la reaccion visual o funcional a partir de esa informacion
+- `GUARDIAN_ANGEL`
+  - permanece en `efectosActivos` hasta que frontend decida consumirlo dentro de su flujo funcional.
+- `PLUS_FOUR`, `SMOKE_BOMB`, `CHILI_PEPPER` y `GLASS_CEILING`
+  - son efectos temporales
+  - backend los elimina automaticamente del jugador afectado cuando ese jugador hace `POST /api/partidas/{id}/pasar`
 - En participaciones, frontend puede leer ya separados:
   - `habilidadesCompradas`
   - `efectosActivos`
@@ -664,6 +669,7 @@ Resultado esperado:
   - `idJugadorObjetivo=22`
   - `efectosActivosObjetivo`
 - frontend usa esa informacion para avisar al jugador afectado y aplicar el comportamiento visual o funcional que corresponda
+- cuando el jugador afectado termine su turno con `POST /api/partidas/{id}/pasar`, backend limpiara automaticamente `PLUS_FOUR` de sus `efectosActivos`
 
 #### Ejemplo de flujo: objeto en un solo paso
 
@@ -683,3 +689,16 @@ Resultado esperado:
 - `consumido=true`
 - la respuesta incluye inventario/eefectos actualizados para refrescar UI
 - si el objetivo no tiene objetos, devuelve mensaje tipo `WHITE_GLOVE no encontro objetos que robar`
+
+#### Limpieza de efectos temporales
+
+No existe un endpoint especifico para borrar manualmente `efectosActivos`.
+
+Flujo esperado:
+
+1. Un objeto como `PLUS_FOUR`, `SMOKE_BOMB`, `CHILI_PEPPER` o `GLASS_CEILING` se usa sobre un jugador.
+2. Backend lo anade a `efectosActivos` del objetivo.
+3. Frontend interpreta ese efecto mientras dure el turno afectado.
+4. Cuando ese jugador hace `POST /api/partidas/{id}/pasar`, backend elimina automaticamente esos efectos temporales de su participacion.
+
+`GUARDIAN_ANGEL` queda fuera de esta limpieza automatica porque actua como caso especial.

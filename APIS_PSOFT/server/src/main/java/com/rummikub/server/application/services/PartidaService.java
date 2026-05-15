@@ -62,7 +62,7 @@ public class PartidaService {
     private static final int MAX_TURN_SLOTS = 4;
     private static final int INITIAL_HAND_SIZE = 14;
     private static final int TURN_TIMEOUT_SECONDS = 60;
-    private static final int LOBBY_TIMEOUT_SECONDS = 50;
+    private static final int LOBBY_TIMEOUT_SECONDS = 20;
     private static final String BOT_NAME_PREFIX = "BOT_";
     private static final int BOT_LEVEL = 5;
     private static final double BOT_RANDOMNESS = 0.20;
@@ -668,6 +668,7 @@ public class PartidaService {
             ParticipacionEntity participacion = mustGetParticipacion(idPartida, idJugador);
             validatePlayerTurn(partida, participacion);
             resetPlayerInactivity(participacion);
+            clearTurnScopedActiveEffects(participacion);
             PartidaDTO updated = advanceTurn(partida, LocalDateTime.now());
             triggerAutomatedBotTurnsAsync(idPartida);
             return attachFichasPorJugador(updated);
@@ -1550,6 +1551,15 @@ public class PartidaService {
             participacionRepository.save(participacion);
         }
         return removed;
+    }
+
+    private void clearTurnScopedActiveEffects(ParticipacionEntity participacion) {
+        List<String> inventory = parsePurchasedObjectCodes(participacion.getHabilidadesActuales());
+        List<String> effects = parseActiveEffectCodes(participacion.getHabilidadesActuales()).stream()
+                .filter(effect -> "GUARDIAN_ANGEL".equals(effect))
+                .toList();
+        participacion.setHabilidadesActuales(serializeHabilidadesState(inventory, effects));
+        participacionRepository.save(participacion);
     }
 
     private UsarObjetoMercadoResponse buildUsarObjetoResponse(
