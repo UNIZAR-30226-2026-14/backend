@@ -2,7 +2,9 @@ package com.rummikub.server.api.controller;
 
 import com.rummikub.server.api.dto.ParticipacionDTO;
 import com.rummikub.server.api.dto.participacion.CreateParticipacionRequest;
+import com.rummikub.server.api.dto.participacion.MonedasParticipacionDTO;
 import com.rummikub.server.api.dto.participacion.UpdateConexionParticipacionRequest;
+import com.rummikub.server.api.dto.participacion.UpdateMonedasParticipacionRequest;
 import com.rummikub.server.api.dto.participacion.UpdateParticipacionRequest;
 import com.rummikub.server.application.services.ParticipacionService;
 import jakarta.validation.Valid;
@@ -49,6 +51,13 @@ public class ParticipacionController {
         return participacionService.getById(idJugador, idPartida);
     }
 
+    @GetMapping("/{idJugador}/{idPartida}/monedas")
+    public MonedasParticipacionDTO mirarMonedas(
+            @PathVariable Integer idJugador,
+            @PathVariable Integer idPartida) {
+        return participacionService.getMonedas(idJugador, idPartida);
+    }
+
     @PostMapping
     public ParticipacionDTO create(@Valid @RequestBody CreateParticipacionRequest request) {
         ParticipacionDTO dto = ParticipacionDTO.builder()
@@ -78,5 +87,13 @@ public class ParticipacionController {
             @PathVariable Integer idPartida,
             @Valid @RequestBody UpdateConexionParticipacionRequest request) {
         return participacionService.updateConexion(idJugador, idPartida, request.getConectado());
+    }
+
+    @PatchMapping("/{idJugador}/{idPartida}/monedas")
+    public MonedasParticipacionDTO modificarMonedas(
+            @PathVariable Integer idJugador,
+            @PathVariable Integer idPartida,
+            @Valid @RequestBody UpdateMonedasParticipacionRequest request) {
+        return participacionService.updateMonedas(idJugador, idPartida, request.getMonedasPartida());
     }
 }

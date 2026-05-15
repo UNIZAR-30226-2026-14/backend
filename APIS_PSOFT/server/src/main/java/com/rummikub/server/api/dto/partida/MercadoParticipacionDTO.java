@@ -16,6 +16,7 @@ import java.util.List;
 public class MercadoParticipacionDTO {
     private Integer idPartida;
     private Integer idJugador;
+    private int monedasPartida;
     private int monedasJugador;
     private List<MercadoItemDTO> objetosMercado;
     private List<String> habilidadesCompradas;

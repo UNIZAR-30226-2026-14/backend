@@ -19,6 +19,7 @@ public class ParticipacionDTO {
     private String jugadorImagenPerfil;
     private Integer idPartida;
     private int fichasActuales;
+    private int monedasPartida;
     private String habilidadesActuales;
     private List<String> habilidadesCompradas;
     private List<String> efectosActivos;

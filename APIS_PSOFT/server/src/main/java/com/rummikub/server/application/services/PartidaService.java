@@ -281,7 +281,7 @@ public class PartidaService {
         }
 
         LinkedHashMap<String, Integer> stockByCode = getOrCreateMarketStockByPlayer(partida, idJugador);
-        return buildMercadoParticipacionDTO(idPartida, idJugador, participacion.getJugador().getMonedas(), stockByCode,
+        return buildMercadoParticipacionDTO(idPartida, idJugador, participacion.getMonedasPartida(), stockByCode,
                 habilidadesCompradas, efectosActivos);
     }
 
@@ -306,13 +306,10 @@ public class PartidaService {
         }
 
         int coste = MARKET_OBJECT_VALUES.get(codigoObjeto);
-        JugadorEntity jugador = participacion.getJugador();
-        if (jugador.getMonedas() < coste) {
+        if (participacion.getMonedasPartida() < coste) {
             throw new IllegalStateException("No tienes monedas suficientes para comprar " + codigoObjeto);
         }
-
-        jugador.setMonedas(jugador.getMonedas() - coste);
-        jugadorRepository.save(jugador);
+        participacion.setMonedasPartida(participacion.getMonedasPartida() - coste);
 
         stockByCode.put(codigoObjeto, stockActual - 1);
         updateMarketStockByPlayer(partida, idJugador, stockByCode);
@@ -326,7 +323,7 @@ public class PartidaService {
         return buildMercadoParticipacionDTO(
                 idPartida,
                 idJugador,
-                jugador.getMonedas(),
+                participacion.getMonedasPartida(),
                 stockByCode,
                 habilidadesCompradas,
                 efectosActivos
@@ -965,6 +962,7 @@ public class PartidaService {
             participacion.setFichasActuales(hand.size());
             participacion.setHabilidadesActuales("");
             participacion.setTurnosInactivo(0);
+            participacion.setMonedasPartida(0);
             if (partida.isModoArcade()) {
                 marketByPlayer.put(participacion.getJugador().getId(), createRandomMarketStock());
             }
@@ -1013,6 +1011,7 @@ public class PartidaService {
             botParticipacion.setHabilidadesActuales("");
             botParticipacion.setManoActual("");
             botParticipacion.setOrdenTurno(null);
+            botParticipacion.setMonedasPartida(0);
             botParticipacion.setConectado(true);
             participacionRepository.save(botParticipacion);
         }
@@ -1225,7 +1224,7 @@ public class PartidaService {
         }
         Map<String, Object> shop = new LinkedHashMap<>();
         shop.put("offer", offer);
-        shop.put("balance", botParticipacion.getJugador().getMonedas());
+        shop.put("balance", botParticipacion.getMonedasPartida());
         return shop;
     }
 
@@ -2350,6 +2349,7 @@ public class PartidaService {
         botParticipacion.setManoActual(participacion.getManoActual());
         botParticipacion.setOrdenTurno(participacion.getOrdenTurno());
         botParticipacion.setTurnosInactivo(0);
+        botParticipacion.setMonedasPartida(participacion.getMonedasPartida());
         botParticipacion.setConectado(true);
 
         participacionRepository.delete(participacion);
@@ -2430,6 +2430,7 @@ public class PartidaService {
         entity.setManoActual("");
         entity.setOrdenTurno(null);
         entity.setTurnosInactivo(0);
+        entity.setMonedasPartida(0);
         entity.setConectado(true);
         return participacionRepository.save(entity);
     }
@@ -2945,14 +2946,15 @@ public class PartidaService {
     private MercadoParticipacionDTO buildMercadoParticipacionDTO(
             Integer idPartida,
             Integer idJugador,
-            int monedasJugador,
+            int monedasPartida,
             Map<String, Integer> stockByCode,
             List<String> habilidadesCompradas,
             List<String> efectosActivos) {
         return MercadoParticipacionDTO.builder()
                 .idPartida(idPartida)
                 .idJugador(idJugador)
-                .monedasJugador(monedasJugador)
+                .monedasPartida(monedasPartida)
+                .monedasJugador(monedasPartida)
                 .objetosMercado(toMercadoItems(stockByCode))
                 .habilidadesCompradas(new ArrayList<>(habilidadesCompradas))
                 .efectosActivos(new ArrayList<>(efectosActivos))

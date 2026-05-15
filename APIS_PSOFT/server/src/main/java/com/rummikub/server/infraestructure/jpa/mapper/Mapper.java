@@ -85,6 +85,7 @@ public class Mapper {
                 .jugadorImagenPerfil(participacion.getJugador().getUrlImgPerfil())
                 .idPartida(participacion.getPartida().getIdPartida())
                 .fichasActuales(participacion.getFichasActuales())
+                .monedasPartida(participacion.getMonedasPartida())
                 .habilidadesActuales(participacion.getHabilidadesActuales())
                 .habilidadesCompradas(parsePurchasedCodes(participacion.getHabilidadesActuales()))
                 .efectosActivos(parseActiveEffects(participacion.getHabilidadesActuales()))

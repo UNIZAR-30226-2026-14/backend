@@ -1,6 +1,7 @@
 package com.rummikub.server.application.services;
 
 import com.rummikub.server.api.dto.ParticipacionDTO;
+import com.rummikub.server.api.dto.participacion.MonedasParticipacionDTO;
 import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionId;
@@ -53,6 +54,17 @@ public class ParticipacionService {
         return Mapper.toDTO(entity);
     }
 
+    public MonedasParticipacionDTO getMonedas(Integer idJugador, Integer idPartida) {
+        ParticipacionId id = new ParticipacionId(idJugador, idPartida);
+        ParticipacionEntity entity = participacionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Participacion no encontrada"));
+        return MonedasParticipacionDTO.builder()
+                .idJugador(idJugador)
+                .idPartida(idPartida)
+                .monedasPartida(entity.getMonedasPartida())
+                .build();
+    }
+
     @Transactional
     public ParticipacionDTO create(ParticipacionDTO dto) {
         if (dto.getIdJugador() == null || dto.getIdPartida() == null) {
@@ -98,6 +110,19 @@ public class ParticipacionService {
         return Mapper.toDTO(participacionRepository.save(entity));
     }
 
+    public MonedasParticipacionDTO updateMonedas(Integer idJugador, Integer idPartida, int monedasPartida) {
+        ParticipacionId id = new ParticipacionId(idJugador, idPartida);
+        ParticipacionEntity entity = participacionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Participacion no encontrada"));
+        entity.setMonedasPartida(monedasPartida);
+        entity = participacionRepository.save(entity);
+        return MonedasParticipacionDTO.builder()
+                .idJugador(idJugador)
+                .idPartida(idPartida)
+                .monedasPartida(entity.getMonedasPartida())
+                .build();
+    }
+
     private ParticipacionDTO save(ParticipacionDTO dto) {
         JugadorEntity jugador = jugadorRepository.findById(dto.getIdJugador())
                 .orElseThrow(() -> new NoSuchElementException("Jugador no encontrado: " + dto.getIdJugador()));
@@ -117,6 +142,7 @@ public class ParticipacionService {
         entity.setOrdenTurno(dto.getOrdenTurno());
         if (existing == null) {
             entity.setTurnosInactivo(dto.getTurnosInactivo());
+            entity.setMonedasPartida(0);
             entity.setConectado(true);
         }
         entity = participacionRepository.save(entity);

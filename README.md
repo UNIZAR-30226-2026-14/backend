@@ -124,8 +124,10 @@ Las peticiones JSON no cambian; solo cambia el esquema (`https`) y el puerto (`8
 - `GET /api/participaciones?partidaId={id}`
 - `GET /api/participaciones?jugadorId={id}`
 - `GET /api/participaciones/{idJugador}/{idPartida}` (nuevo, directo)
+- `GET /api/participaciones/{idJugador}/{idPartida}/monedas`
 - `POST /api/participaciones`
 - `PUT /api/participaciones/{idJugador}/{idPartida}`
+- `PATCH /api/participaciones/{idJugador}/{idPartida}/monedas`
 
 ### Matchmaking publico
 
@@ -426,17 +428,23 @@ Reglas de formato:
 
 Notas:
 
-- Las fichas arcoiris (`A`) se tratan como flexibles en validacion de combinaciones arcade.
+- Las fichas arcoiris (`A`) ya no se usan como comodin.
+- En modo arcade pueden aparecer al robar una ficha.
+- Cuando una ficha arcoiris sale de la mano, backend concede un objeto aleatorio al jugador.
 - Joker clasico sigue siendo `J*`.
 
 ### 10.4 Integraciones nuevas de mercado y objetos arcade
 
 Resumen:
 
-- No se ha cambiado el esquema de base de datos para esta parte.
+- Se ha anadido subeconomia de partida para mercado arcade.
 - Se reutilizan:
   - `Partida.mercado`
   - `Participacion.habilidadesActuales`
+- El saldo para comprar objetos dentro de una partida ahora vive en:
+  - `Participacion.monedasPartida`
+- Ese saldo arranca en `0` por defecto al crear la participacion / iniciar la partida.
+- `Jugador.monedas` sigue existiendo como saldo global del jugador, pero ya no se usa para comprar objetos dentro de la partida.
 - El mercado personal de cada jugador en arcade ahora muestra `3` objetos.
 - Precios actuales:
   - `MIDAS_TOUCH` cuesta `3`
@@ -457,17 +465,34 @@ Endpoints nuevos o ampliados:
 - `GET /api/partidas/{id}/mercado`
   - devuelve el mercado personal del jugador autenticado.
   - incluye:
-    - `monedasJugador` 
+    - `monedasPartida`
+    - `monedasJugador`
     - `objetosMercado`
     - `habilidadesCompradas`
     - `efectosActivos`
 
 - `POST /api/partidas/{id}/mercado/comprar`
   - compra un objeto del mercado personal del jugador autenticado.
+  - descuenta de `monedasPartida`.
 
 - `POST /api/partidas/{id}/mercado/usar`
   - usa un objeto ya comprado.
   - el `idJugador` no se manda en body: se obtiene del token.
+
+- `GET /api/participaciones/{idJugador}/{idPartida}/monedas`
+  - devuelve el saldo actual de moneda de partida.
+
+- `PATCH /api/participaciones/{idJugador}/{idPartida}/monedas`
+  - actualiza el saldo de moneda de partida.
+  - pensado para que frontend cargue ahi los puntos convertidos a moneda jugable.
+
+Body para modificar monedas:
+
+```json
+{
+  "monedasPartida": 10
+}
+```
 
 Body base para usar objeto:
 
@@ -528,6 +553,7 @@ Notas de comportamiento:
 - En participaciones, frontend puede leer ya separados:
   - `habilidadesCompradas`
   - `efectosActivos`
+- La moneda que usa el mercado durante la partida es `monedasPartida`.
 
 #### Ejemplo de flujo: objeto sobre uno mismo
 

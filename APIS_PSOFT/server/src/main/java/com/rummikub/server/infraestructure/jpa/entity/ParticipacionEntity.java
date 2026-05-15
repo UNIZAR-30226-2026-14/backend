@@ -48,6 +48,9 @@ public class ParticipacionEntity {
     @Column(name = "TURNOS_INACTIVO", nullable = false)
     private int turnosInactivo;
 
+    @Column(name = "MONEDAS_PARTIDA", nullable = false)
+    private int monedasPartida;
+
     @Column(name = "CONECTADO", nullable = false)
     private boolean conectado;
 
@@ -60,6 +63,7 @@ public class ParticipacionEntity {
         this.manoActual = "";
         this.ordenTurno = null;
         this.turnosInactivo = 0;
+        this.monedasPartida = 0;
         this.conectado = true;
     }
 }
