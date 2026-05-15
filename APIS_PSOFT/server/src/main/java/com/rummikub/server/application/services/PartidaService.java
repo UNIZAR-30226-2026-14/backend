@@ -1413,6 +1413,10 @@ public class PartidaService {
     }
 
     private void drawOneTileIfPossible(PartidaEntity partida, ParticipacionEntity participacion) {
+        drawOneTileIfPossible(partida, participacion, true);
+    }
+
+    private void drawOneTileIfPossible(PartidaEntity partida, ParticipacionEntity participacion, boolean resetInactivityCounter) {
         List<String> bag = parseTileList(partida.getBolsa());
         if (bag.isEmpty()) {
             return;
@@ -1422,7 +1426,9 @@ public class PartidaService {
         hand.add(drawn);
         participacion.setManoActual(serializeTileList(hand));
         participacion.setFichasActuales(hand.size());
-        participacion.setTurnosInactivo(0);
+        if (resetInactivityCounter) {
+            participacion.setTurnosInactivo(0);
+        }
         participacionRepository.save(participacion);
         partida.setBolsa(serializeTileList(bag));
     }
@@ -2238,7 +2244,7 @@ public class PartidaService {
             boolean replaced = maybeReplaceInactivePlayerWithBot(partida, timedOut);
             if (!replaced && !isBotPlayer(timedOut)) {
                 // Primer timeout: forzar robo de ficha como si el jugador hubiera pasado
-                drawOneTileIfPossible(partida, timedOut);
+                drawOneTileIfPossible(partida, timedOut, false);
             }
             runtime.currentTurn = nextTurn;
             runtime.deadline = now.plusSeconds(resolveTurnDurationSeconds(idPartida, nextTurn));
