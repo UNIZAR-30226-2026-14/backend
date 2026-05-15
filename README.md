@@ -1,4 +1,4 @@
-﻿# RummiPlus Backend - Guia para Frontend
+# RummiPlus Backend - Guia para Frontend
 
 ## 1. Base URL
 
@@ -327,6 +327,8 @@ Body (replace_board):
 - Estado de partida:
   - endpoint para pausar: `POST /api/partidas/{id}/pausar`
   - endpoint para reanudar: `POST /api/partidas/{id}/reanudar`
+    - al reanudar, el backend crea automaticamente una invitacion para cada jugador humano (no bot) que no es el host
+    - esos jugadores la reciben en su proximo ciclo de polling de `GET /api/invitaciones`
   - endpoint para finalizar manualmente: `POST /api/partidas/{id}/finalizar`
   - estados actuales: `WAITING | RUNNING | PAUSED | FINISHED`
 - Robo:
@@ -342,6 +344,66 @@ Body (replace_board):
 - Devuelve objeto combinado:
   - `invitaciones`: invitaciones recibidas del jugador.
   - `partidasEnCurso`: partidas donde participa y estan en `RUNNING` o `PAUSED`.
+
+#### Flujo completo: reanudar partida con notificacion a jugadores
+
+Este flujo describe como el host reanuda una partida y como los demas jugadores se enteran sin WebSockets.
+
+**Paso 1 — Host reanuda la partida:**
+
+```
+POST /api/partidas/42/reanudar
+Authorization: Bearer <token-host>
+```
+
+Respuesta: partida con `estado: RUNNING`.
+
+Efecto en backend: se crea automaticamente una invitacion (en tabla `INVITACION_PARTIDA`) para cada jugador humano que no es el host.
+
+**Paso 2 — Los demas jugadores estan haciendo polling desde el menu principal:**
+
+```
+GET /api/invitaciones?idInvitado=7&includeInProgress=true
+```
+
+Respuesta:
+
+```json
+{
+  "invitaciones": [
+    {
+      "idEmisor": 3,
+      "nombreEmisor": "Alice",
+      "idInvitado": 7,
+      "idPartida": 42,
+      "fechaEnvio": "2026-05-15T10:30:00"
+    }
+  ],
+  "partidasEnCurso": [...]
+}
+```
+
+**Paso 3 — Frontend detecta la invitacion y muestra el modal "Alice ha reanudado la partida. ¿Volver a jugar?"**
+
+El jugador acepta (o el frontend redirige automaticamente si la invitacion es a una partida donde ya tiene participacion).
+
+**Paso 4 — El jugador vuelve a la partida:**
+
+```
+GET /api/partidas/42
+```
+
+El estado ya es `RUNNING`, el jugador ve su mano y el tablero actual.
+
+**Paso 5 (opcional) — Borrar la invitacion una vez procesada:**
+
+```
+DELETE /api/invitaciones/{idHost}/{idJugador}/42
+```
+
+Notas:
+- Si la invitacion ya existia (partida pausada y reanudada varias veces), el backend la ignora y no crea duplicados.
+- El frontend solo necesita hacer polling de `GET /api/invitaciones` (que ya hacia para invitaciones normales). No se requiere ningun mecanismo adicional.
 
 ### 10.3 Modo arcade: codificacion de fichas (alineada con IA)
 

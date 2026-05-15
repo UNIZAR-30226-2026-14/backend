@@ -1,4 +1,4 @@
-package com.rummikub.server.application.services;
+﻿package com.rummikub.server.application.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rummikub.server.api.dto.PartidaDTO;
@@ -15,7 +15,10 @@ import com.rummikub.server.infraestructure.jpa.entity.JugadorEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionEntity;
 import com.rummikub.server.infraestructure.jpa.entity.ParticipacionId;
 import com.rummikub.server.infraestructure.jpa.entity.PartidaEntity;
+import com.rummikub.server.infraestructure.jpa.entity.InvitacionPartidaEntity;
+import com.rummikub.server.infraestructure.jpa.entity.InvitacionPartidaId;
 import com.rummikub.server.infraestructure.jpa.mapper.Mapper;
+import com.rummikub.server.infraestructure.jpa.repository.InvitacionPartidaRepository;
 import com.rummikub.server.infraestructure.jpa.repository.JugadorRepository;
 import com.rummikub.server.infraestructure.jpa.repository.ParticipacionRepository;
 import com.rummikub.server.infraestructure.jpa.repository.PartidaRepository;
@@ -135,6 +138,7 @@ public class PartidaService {
     private final JugadorRepository jugadorRepository;
     private final BotIntegrationService botIntegrationService;
     private final TransactionTemplate transactionTemplate;
+    private final InvitacionPartidaRepository invitacionPartidaRepository;
     private final Map<Integer, TurnRuntime> turnRuntimeByPartida = new ConcurrentHashMap<>();
     private final Map<Integer, Object> turnMutexByPartida = new ConcurrentHashMap<>();
     private final Set<Integer> botTurnJobsInProgress = ConcurrentHashMap.newKeySet();
@@ -146,12 +150,14 @@ public class PartidaService {
             ParticipacionRepository participacionRepository,
             JugadorRepository jugadorRepository,
             BotIntegrationService botIntegrationService,
-            TransactionTemplate transactionTemplate) {
+            TransactionTemplate transactionTemplate,
+            InvitacionPartidaRepository invitacionPartidaRepository) {
         this.partidaRepository = partidaRepository;
         this.participacionRepository = participacionRepository;
         this.jugadorRepository = jugadorRepository;
         this.botIntegrationService = botIntegrationService;
         this.transactionTemplate = transactionTemplate;
+        this.invitacionPartidaRepository = invitacionPartidaRepository;
     }
 
     @PostConstruct
@@ -595,7 +601,7 @@ public class PartidaService {
             PartidaEntity partida = partidaRepository.findById(idPartida)
                     .orElseThrow(() -> new NoSuchElementException("Partida no encontrada: " + idPartida));
             ensureDefaultState(partida);
-            mustGetParticipacion(idPartida, idJugadorSolicitante);
+            JugadorEntity host = mustGetParticipacion(idPartida, idJugadorSolicitante).getJugador();
 
             if (ESTADO_FINISHED.equals(partida.getEstado())) {
                 throw new IllegalStateException("La partida ya finalizo");
@@ -619,8 +625,37 @@ public class PartidaService {
             turnRuntimeByPartida.put(partida.getIdPartida(), runtime);
 
             partida = partidaRepository.save(partida);
+
+            // Notificar a los jugadores humanos (no host, no bots) via invitacion
+            notificarReanudacionAJugadores(partida, host);
+
             triggerAutomatedBotTurnsAsync(idPartida);
             return toPartidaDTO(partida);
+        }
+    }
+
+    /**
+     * Crea una invitacion para cada participante humano (no bot, no host) de la partida,
+     * de manera que al hacer polling de GET /api/invitaciones les aparezca la notificacion
+     * de que la partida ha sido reanudada.
+     * Si la invitacion ya existe (partida pausada y reanudada varias veces) se ignora el duplicado.
+     */
+    private void notificarReanudacionAJugadores(PartidaEntity partida, JugadorEntity host) {
+        List<ParticipacionEntity> participaciones = getOrderedParticipaciones(partida.getIdPartida());
+        for (ParticipacionEntity p : participaciones) {
+            JugadorEntity jugador = p.getJugador();
+            if (jugador == null || isBotPlayer(p)) {
+                continue;
+            }
+            if (jugador.getId().equals(host.getId())) {
+                continue; // el host ya sabe que reanudo
+            }
+            InvitacionPartidaId invId = new InvitacionPartidaId(
+                    host.getId(), jugador.getId(), partida.getIdPartida());
+            if (!invitacionPartidaRepository.existsById(invId)) {
+                invitacionPartidaRepository.save(
+                        new InvitacionPartidaEntity(host, jugador, partida, LocalDateTime.now()));
+            }
         }
     }
 
@@ -1305,7 +1340,7 @@ public class PartidaService {
         );
 
         if ("SWAP_ON_FAIL".equals(codigoObjeto) || "CRYSTAL_BALL".equals(codigoObjeto)) {
-            LOGGER.info("Objeto de IA {} denegado: requiere interacción/información que el backend no reinyecta al bot", codigoObjeto);
+            LOGGER.info("Objeto de IA {} denegado: requiere interacciÃ³n/informaciÃ³n que el backend no reinyecta al bot", codigoObjeto);
             return codigoObjeto;
         }
 
