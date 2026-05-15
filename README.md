@@ -153,6 +153,69 @@ Nota:
 
 - si no se envia body o `modoArcade=false`, el matchmaking buscara/creara partida publica clasica.
 
+Ejemplo de flujo recomendado con auto-llenado por bots:
+
+1. Front hace login y guarda el token.
+2. Front lanza matchmaking:
+
+```http
+POST /api/partidas/matchmaking
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "modoArcade": true
+}
+```
+
+Respuesta posible:
+
+```json
+{
+  "creadaNuevaPartida": true,
+  "partida": {
+    "idPartida": 524,
+    "estado": "WAITING",
+    "modoArcade": true,
+    "privada": false,
+    "corriendo": false
+  },
+  "participacion": {
+    "idJugador": 12,
+    "idPartida": 524,
+    "fichasActuales": 0,
+    "monedasPartida": 0,
+    "habilidadesCompradas": [],
+    "efectosActivos": []
+  }
+}
+```
+
+3. Mientras la partida siga en `WAITING`, front hace polling de:
+
+```http
+GET /api/partidas/524
+Authorization: Bearer <token>
+```
+
+4. Si la partida llega a `4` jugadores, se autoarranca al instante.
+5. Si pasan `50` segundos y sigue siendo publica `WAITING` con al menos `1` jugador humano, backend rellena con bots e inicia automaticamente.
+6. Cuando `estado` pase a `RUNNING`, front entra ya al tablero y puede pedir:
+
+```http
+GET /api/participaciones/12/524
+GET /api/partidas/524
+```
+
+Notas:
+
+- Si el lobby publico expira vacio, backend lo cierra y no lo arranca.
+- El flujo recomendado para aprovechar este auto-llenado es `POST /api/partidas/matchmaking`.
+
 ### Otros
 
 - `GET /api/jugadores`
