@@ -490,6 +490,8 @@ public class PartidaService {
         } else {
             partida.setCorriendo(false);
             partida.setEstado(ESTADO_WAITING);
+            armPublicLobbyTimerIfNeeded(partida);
+            partida = partidaRepository.save(partida);
         }
 
         return toPartidaDTO(partida);
@@ -530,10 +532,10 @@ public class PartidaService {
             partida.setEstado(ESTADO_RUNNING);
             initializeGameState(partida);
         } else if (wasRunning && !willRun) {
-            partida.setTurnoInicio(null);
             if (!ESTADO_FINISHED.equals(partida.getEstado())) {
                 partida.setEstado(ESTADO_WAITING);
             }
+            armPublicLobbyTimerIfNeeded(partida);
             turnRuntimeByPartida.remove(partida.getIdPartida());
         } else if (willRun) {
             synchronized (getTurnMutex(idPartida)) {
@@ -542,6 +544,8 @@ public class PartidaService {
                     turnRuntimeByPartida.put(partida.getIdPartida(), runtime);
                 }
             }
+        } else if (ESTADO_WAITING.equalsIgnoreCase(safe(partida.getEstado()))) {
+            armPublicLobbyTimerIfNeeded(partida);
         }
 
         return toPartidaDTO(partidaRepository.save(partida));
@@ -2415,6 +2419,17 @@ public class PartidaService {
         partida.setPrivada(false);
         partida.setCorriendo(false);
         return partidaRepository.save(partida);
+    }
+
+    private void armPublicLobbyTimerIfNeeded(PartidaEntity partida) {
+        if (partida == null) {
+            return;
+        }
+        if (!partida.isPrivada() && !partida.isCorriendo() && ESTADO_WAITING.equalsIgnoreCase(safe(partida.getEstado()))) {
+            partida.setTurnoInicio(LocalDateTime.now());
+        } else if (partida.isPrivada()) {
+            partida.setTurnoInicio(null);
+        }
     }
 
     private ParticipacionEntity createOrReuseParticipation(Integer idJugador, PartidaEntity partida) {

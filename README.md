@@ -203,7 +203,7 @@ Authorization: Bearer <token>
 ```
 
 4. Si la partida llega a `4` jugadores, se autoarranca al instante.
-5. Si pasan `50` segundos y sigue siendo publica `WAITING` con al menos `1` jugador humano, backend rellena con bots e inicia automaticamente.
+5. Si pasan `20` segundos y sigue siendo publica `WAITING` con al menos `1` jugador humano, backend rellena con bots e inicia automaticamente.
 6. Cuando `estado` pase a `RUNNING`, front entra ya al tablero y puede pedir:
 
 ```http
@@ -214,7 +214,8 @@ GET /api/partidas/524
 Notas:
 
 - Si el lobby publico expira vacio, backend lo cierra y no lo arranca.
-- El flujo recomendado para aprovechar este auto-llenado es `POST /api/partidas/matchmaking`.
+- Este auto-llenado funciona para cualquier partida publica en estado `WAITING`, tanto clasica como arcade.
+- Puede usarse tanto creando la publica con `POST /api/partidas` como entrando por `POST /api/partidas/matchmaking`.
 
 ### Otros
 
