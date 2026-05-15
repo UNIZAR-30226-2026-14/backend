@@ -569,7 +569,7 @@ Campos posibles del body:
 
 - `codigoObjeto`: obligatorio.
 - `idJugadorObjetivo`: obligatorio si el objeto afecta a otro jugador.
-- `codigoObjetoObjetivo`: se usa en la confirmacion de `WHITE_GLOVE`.
+- `codigoObjetoObjetivo`: no se usa en `WHITE_GLOVE` (ahora roba aleatorio en un solo paso).
 - `fichaPropia`: se usa en la confirmacion de `SWAP_ON_FAIL`.
 - `fichaObjetivo`: se usa en la confirmacion de `SWAP_ON_FAIL`.
 
@@ -602,9 +602,13 @@ Reparto de responsabilidades backend / frontend:
 
 Notas de comportamiento:
 
-- `SWAP_ON_FAIL` y `WHITE_GLOVE` funcionan en dos pasos:
+- `SWAP_ON_FAIL` funciona en dos pasos:
   - primero preview
   - luego confirmacion
+- `WHITE_GLOVE` funciona en un solo paso:
+  - requiere `idJugadorObjetivo`
+  - roba un objeto aleatorio del inventario del objetivo
+  - si el objetivo no tiene objetos, no roba nada y devuelve mensaje informativo
 - `CRYSTAL_BALL`
   - devuelve las fichas y objetos del jugador objetivo.
 - `MIDAS_TOUCH`
@@ -661,11 +665,9 @@ Resultado esperado:
   - `efectosActivosObjetivo`
 - frontend usa esa informacion para avisar al jugador afectado y aplicar el comportamiento visual o funcional que corresponda
 
-#### Ejemplo de flujo: objeto con preview y confirmacion
+#### Ejemplo de flujo: objeto en un solo paso
 
 Caso: `WHITE_GLOVE`
-
-Paso 1, preview:
 
 ```json
 POST /api/partidas/15/mercado/usar
@@ -675,25 +677,9 @@ POST /api/partidas/15/mercado/usar
 }
 ```
 
-Frontend recibe:
-
-- `consumido=false`
-- `habilidadesObjetivoVisibles=[...]`
-
-Paso 2, confirmacion:
-
-```json
-POST /api/partidas/15/mercado/usar
-{
-  "codigoObjeto": "WHITE_GLOVE",
-  "idJugadorObjetivo": 22,
-  "codigoObjetoObjetivo": "SMOKE_BOMB"
-}
-```
-
 Resultado esperado:
 
-- backend roba exactamente ese objeto al objetivo
+- backend roba un objeto aleatorio del objetivo (si tiene inventario)
 - `consumido=true`
-- el inventario del actor se actualiza en `habilidadesCompradas`
-- frontend actualiza su inventario visual con la respuesta
+- la respuesta incluye inventario/eefectos actualizados para refrescar UI
+- si el objetivo no tiene objetos, devuelve mensaje tipo `WHITE_GLOVE no encontro objetos que robar`
